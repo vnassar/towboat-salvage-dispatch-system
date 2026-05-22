@@ -1,0 +1,587 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using TowBoatSalvageWebApp.Components.Pages.NavBar
+@using TowBoatSalvageWebApp.Data
+@using TowBoatSalvageWebApp.Services
+@using static TowBoatSalvageWebApp.Services.FuelLogService
+@inject ApplicationDbContext UserDb
+@inject ISnackbar Snackbar
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IDialogService DialogService
+@inject FuelLogService FuelLogService
+
+@page "/admin-dashboard"
+
+<PageTitle>Admin Dashboard</PageTitle>
+
+
+@attribute [Authorize(Roles ="Admin")]
+
+
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-0">
+    <NavigationBar />
+    
+    <MudDrawerContainer>
+        <MudDrawer Open="true"
+                    Variant="DrawerVariant.Persistent"
+                    Elevation="1"
+                    Width="169px"
+                    Class="pa-2">
+            
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Admin Sections</MudText>
+            @*
+                <MudList T="string" Dense="true">
+                <MudListItem OnClick="@(() => SetSection(AdminSection.Fuel))" Selected="@(activeSection == AdminSection.Fuel)"> Fuel</MudListItem>
+                <MudListItem OnClick="@(() => SetSection(AdminSection.Users))" Selected="@(activeSection == AdminSection.Users)"> Users</MudListItem>
+                <MudListItem OnClick="@(() => SetSection(AdminSection.Disk))" Selected="@(activeSection == AdminSection.Disk)"> Disk</MudListItem>
+            </MudList>
+            *@
+            <MudTabs @bind-ActivePanelIndex="ActiveTabIndex" Position="Position.Left" Rounded="true" Border="true">
+                
+                <MudTabPanel>
+                    <TabContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%;">
+                            <MudText >Fuel</MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowRight" Size="Size.Small" />
+                        </MudStack>
+                    </TabContent>
+                </MudTabPanel>
+                <MudTabPanel>
+                    <TabContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%;">
+                            <MudText>Users</MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowRight" Size="Size.Small" />
+                        </MudStack>
+                    </TabContent>
+                </MudTabPanel>
+                <MudTabPanel>
+                    <TabContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%;">
+                            <MudText>Disk</MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowRight" Size="Size.Small" />
+                        </MudStack>
+                    </TabContent>
+                </MudTabPanel>
+                <MudTabPanel>
+                    <TabContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%;">
+                            <MudText>Salvages</MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowRight" Size="Size.Small" />
+                        </MudStack>
+                    </TabContent>
+                </MudTabPanel>
+                <MudTabPanel>
+                    <TabContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%;">
+                            <MudText>Documents</MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowRight" Size="Size.Small" />
+                        </MudStack>
+                    </TabContent>
+                </MudTabPanel>
+                <MudTabPanel>
+                    <TabContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%;">
+                            <MudText>Work Orders</MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowRight" Size="Size.Small" />
+                        </MudStack>
+                    </TabContent>
+                </MudTabPanel>
+            </MudTabs>
+        </MudDrawer>
+    
+    
+    <MudMainContent Class="pa-1" >
+
+        
+
+        @switch (activeSection)
+        {
+            case AdminSection.Fuel:
+                <MudPaper Elevation="3" Class="pa-4 mt-4">
+                    <MudText Typo="Typo.h6" Class="mb-2">Fuel Log Entries</MudText>
+
+                    <MudSelect T="string" Label="Filter by boat" Variant="Variant.Outlined" @bind-Value="selectedBoatFilter" @bind-Value:after="async () => await LoadFuelEntriesAsync()">
+                        <MudSelectItem Value="string.Empty">All Boats</MudSelectItem>
+                        @foreach (var boat in fuelBoats)
+                        {
+                            <MudSelectItem Value="@boat">@boat</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudTable Items="fuelEntries" Dense="true" Class="mt-4">
+                        <HeaderContent>
+                            <MudTh>Date</MudTh>
+                            <MudTh>Boat</MudTh>
+                            <MudTh>Crew</MudTh>
+                            <MudTh>Engine1</MudTh>
+                            <MudTh>Engine2</MudTh>
+                            <MudTh>Fuel1</MudTh>
+                            <MudTh>Fuel2</MudTh>
+                            <MudTh>Fuel-Gas Cans</MudTh>
+                            <MudTh>Actions</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            @if (editDraft?.ID == context.ID)
+                            {
+                                <MudTd>@context.LogDate.ToShortDateString()</MudTd>
+                                <MudTd>@context.BoatName</MudTd>
+                                <MudTd>@context.CrewMember</MudTd>
+
+                                <MudTd>
+                                    <MudNumericField T="decimal" Variant="Variant.Outlined" Dense="true"
+                                                        @bind-Value="editDraft.Engine1Hours" />
+                                </MudTd>
+                                <MudTd>
+                                    <MudNumericField T="decimal" Variant="Variant.Outlined" Dense="true"
+                                                        @bind-Value="editDraft.Engine2Hours" />
+                                </MudTd>
+                                <MudTd>
+                                    <MudNumericField T="decimal" Variant="Variant.Outlined" Dense="true"
+                                                        @bind-Value="editDraft.Fuel1" />
+                                </MudTd>
+                                <MudTd>
+                                    <MudNumericField T="decimal" Variant="Variant.Outlined" Dense="true"
+                                                        @bind-Value="editDraft.Fuel2" />
+                                </MudTd>
+                                <MudTd>
+                                    <MudNumericField T="decimal" Variant="Variant.Outlined" Dense="true"
+                                                        @bind-Value="editDraft.GasCans" />
+                                </MudTd>
+                                <MudTd>
+                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                                OnClick="SaveEditAsync">Save</MudButton>
+                                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="CancelEdit">Cancel</MudButton>
+                                </MudTd>
+                            }
+                            else
+                            {
+                                <MudTd>@context.LogDate.ToShortDateString()</MudTd>
+                                <MudTd>@context.BoatName</MudTd>
+                                <MudTd>@context.CrewMember</MudTd>
+                                <MudTd>@context.Engine1Hours</MudTd>
+                                <MudTd>@context.Engine2Hours</MudTd>
+                                <MudTd>@context.Fuel1</MudTd>
+                                <MudTd>@context.Fuel2</MudTd>
+                                <MudTd>@context.GasCans</MudTd>
+                                <MudTd>
+                                    <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="() => StartEdit(context)">Edit</MudButton>
+                                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error"
+                                                OnClick="() => ConfirmDeleteFuelEntryAsync(context.ID)">Delete</MudButton>
+                                </MudTd>
+                            }
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+
+
+
+                <MudPaper Elevation="3" Class="pa-4 mt-4">
+                    <MudText Typo="Typo.h6" Class="mb-2">Fuel Usage Summary (@summaryYear)</MudText>
+
+                    <MudTable Items="fuelSummary" Dense="true">
+                        <HeaderContent>
+                            <MudTh>Boat</MudTh>
+                            <MudTh>Total Fuel (gal, includes gas cans)</MudTh>
+                            <MudTh>Entries</MudTh>
+                            <MudTh>Download Log</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.BoatName</MudTd>
+                            <MudTd>@context.TotalFuel</MudTd>
+                            <MudTd>@context.TotalEntries</MudTd>
+                            <MudTd>
+                                <MudButton Size="Size.Small"
+                                            Variant="Variant.Outlined"
+                                            Href="@GetReportUrl(context.BoatName)">
+                                    Download
+                                </MudButton>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+                break;
+
+            case AdminSection.Users:
+                <MudPaper Elevation="1" Class="pa-4 mb-4">
+                    <MudText Typo="Typo.h6" Class="mb-2">Registered Users</MudText>
+
+                    <MudTable Items="users" Hover="true" Dense="true">
+                        <HeaderContent>
+                            <MudTh>Name</MudTh>
+                            <MudTh>Email</MudTh>
+                            <MudTh>Roles</MudTh>
+                            <MudTh>Assign Role</MudTh>
+                            <MudTh>Delete</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Name">
+                                <MudTextField T="string"
+                                              Value="@context.Name"
+                                              ValueChanged="(async (string? newValue) => await UpdateNameAsync(context, newValue))">
+                            </MudTextField>
+                            </MudTd>
+                            <MudTd DataLabel="Email">@context.Email</MudTd>
+                            <MudTd DataLabel="Roles">
+                                <MudChipSet T="string">
+                                    @if (userRoles.TryGetValue(context.Id, out var roles))
+                                    {
+                                        @foreach (var role in roles)
+                                        {
+                                            <MudChip T="string" Closeable="true" OnClose="async () => await RemoveRoleAsync(context, role)">
+                                                @role
+                                            </MudChip>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Disabled="true">None</MudChip>
+                                    }
+                                </MudChipSet>
+                            </MudTd>
+                            <MudTd DataLabel="Assign Role">
+                                <MudSelect T="string" Dense="true" Label="Select role"
+                                            @bind-Value="selectedRoleByUser[context.Id]">
+                                    @foreach (var role in availableRoles)
+                                    {
+                                        <MudSelectItem Value="@role">@role</MudSelectItem>
+                                    }
+                                </MudSelect>
+                                <MudButton Class="mt-2" Variant="Variant.Filled" Style="background-color: rgb(42, 42, 248); color: white;"
+                                            OnClick="async () => await AddRoleAsync(context)">
+                                    Add Role
+                                </MudButton>
+                            </MudTd>
+
+                            <MudTd DataLabel="Delete">
+                                <MudButton Variant="Variant.Outlined" Color="Color.Error" Disabled="@(context.Id == currentUserId)" OnClick="async () => await ConfirmAndDeleteUserAsync(context)">Delete</MudButton>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+                break;
+
+            case AdminSection.Disk:
+                <MudPaper Elevation="1" Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-2">Server Disk Space</MudText>
+                    @if (totalGb > 0)
+                    {
+                        <MudText><b>Total Space:</b> @($"{totalGb:0.00}") GB</MudText>
+                        <MudText><b>Free Space:</b> @($"{freeGb:0.00}") GB</MudText>
+                    }
+                    else
+                    {
+                        <MudText Color="Color.Warning">Could not determine disk space.</MudText>
+                    }
+                </MudPaper>
+                break;
+
+            case AdminSection.SalvageBoard:
+                <MudPaper Elevation="0" Class="ml-n5 mr-n5">
+                        <SalvageBoard IsFromAdminDashboard="true"/>
+                </MudPaper>
+                break;
+
+            case AdminSection.Documents:
+                <MudPaper Elevation="0" Class="ml-n5 mr-n5">
+                    <NewDocumentRequest IsFromAdminDashboard="true" />
+                </MudPaper>
+                break;
+
+            case AdminSection.WorkOrders:
+                <MudPaper Elevation="0" Class="ml-n5 mr-n5">
+                    <ManageWorkOrders IsFromAdminDashboard="true" />
+                </MudPaper>
+                break;
+
+            }
+        </MudMainContent>
+    </MudDrawerContainer>
+</MudContainer>
+
+@code {
+
+    private enum AdminSection
+    {
+        Fuel,
+        Users,
+        Disk,
+        SalvageBoard,
+        Documents,
+        WorkOrders
+    }
+
+    private AdminSection activeSection = AdminSection.Fuel;
+
+    private int ActiveTabIndex
+    {
+        get => (int)activeSection;
+        set => activeSection = (AdminSection)value;
+    }
+
+
+    private List<ApplicationUser> users = new();
+    private Dictionary<string, List<string>> userRoles = new();
+    private Dictionary<string, string> selectedRoleByUser = new();
+    private List<string> availableRoles = new();
+
+    private double totalGb = 0;
+    private double freeGb = 0;
+
+    private string? currentUserId;
+
+    private List<ApplicationUser> pendingUsers = new();
+
+    private List<BoatFuelSummary> fuelSummary = new();
+    private int summaryYear = DateTime.Today.Year;
+    private List<FuelLogEntry> fuelEntries = new();
+    private List<string> fuelBoats = new();
+    private string? selectedBoatFilter = null;
+    private string boatFilterString = "All Boats";
+
+    private FuelLogEntry? editDraft;
+
+    private string? ErrorMsg = "Nothing";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsersAndRolesAsync();
+        LoadDiskInfo();
+        await LoadPendingUsersAsync();
+
+        fuelSummary = await FuelLogService.GetFuelSummaryAsync(summaryYear);
+
+        fuelBoats = await FuelLogService.GetBoatNamesAsync();
+        //await LoadFuelEntriesAsync();
+        fuelEntries = new();
+    }
+
+    private void SetSection(AdminSection section)
+    {
+        activeSection = section;
+    }
+
+    private async Task LoadCurrentUserAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var currentUser = await UserManager.GetUserAsync(authState.User);
+        currentUserId = currentUser?.Id;
+    }
+
+    private async Task ConfirmAndDeleteUserAsync(ApplicationUser user)
+    {
+        if (user.Id == currentUserId)
+        {
+            Snackbar.Add("You can't delete your own account.", Severity.Warning);
+            return;
+        }
+
+        var confirm = await DialogService.ShowMessageBox(
+            title: "Delete User",
+            markupMessage: (MarkupString)$"Are you sure you want to delete <b>{user.Email}</b>?",
+            yesText: "Delete",
+            cancelText: "Cancel"
+            );
+
+        if (confirm == true)
+        {
+            await DeleteUserAsync(user);
+        }
+    }
+
+    private async Task DeleteUserAsync(ApplicationUser user)
+    {
+        var result = await UserManager.DeleteAsync(user);
+        if (result.Succeeded)
+        {
+            Snackbar.Add("User deleted successfully.", Severity.Success);
+            await LoadUsersAndRolesAsync();
+        }
+        else
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            Snackbar.Add($"Failed to delete user: {errors}", Severity.Error);
+        }
+    }
+
+    private async Task LoadPendingUsersAsync()
+    {
+        pendingUsers = users.Where(u => !u.isApproved).ToList();
+        await Task.CompletedTask;
+    }
+
+    private async Task LoadUsersAndRolesAsync()
+    {
+        users = await UserManager.Users.OrderBy(u => u.Email).ToListAsync();
+
+        availableRoles = await RoleManager.Roles
+            .Select(r => r.Name!)
+            .OrderBy(r => r)
+            .ToListAsync();
+
+        userRoles.Clear();
+        selectedRoleByUser.Clear();
+
+        foreach (var user in users)
+        {
+            var roles = (await UserManager.GetRolesAsync(user)).ToList();
+            userRoles[user.Id] = roles;
+            selectedRoleByUser[user.Id] = availableRoles.FirstOrDefault() ?? "";
+        }
+    }
+
+    private async Task UpdateNameAsync(ApplicationUser user, string? newName)
+    {
+        var trimmed = (newName ?? string.Empty).Trim();
+
+        user.Name = trimmed;
+
+        var result = await UserManager.UpdateAsync(user);
+        if (result.Succeeded) 
+        {
+            Snackbar.Add($"Updated name for {user.Email}.", Severity.Success);
+        }
+        else
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            Snackbar.Add($"Failed to update name: {errors}", Severity.Error);
+        }
+
+        await LoadUsersAndRolesAsync();
+
+
+    }
+
+    private async Task AddRoleAsync(ApplicationUser user)
+    {
+        if (!selectedRoleByUser.TryGetValue(user.Id, out var role) || string.IsNullOrWhiteSpace(role))
+        {
+            Snackbar.Add("Please choose a role before adding.", Severity.Warning);
+            return;
+        }
+
+        if (await UserManager.IsInRoleAsync(user, role))
+        {
+            Snackbar.Add($"User already has role '{role}'.", Severity.Info);
+            return;
+        }
+
+        var result = await UserManager.AddToRoleAsync(user, role);
+        if (result.Succeeded)
+        {
+            if (user.isApproved == false)
+            {
+                user.isApproved = true;
+                await UserManager.UpdateAsync(user);
+                Snackbar.Add($"{user.Email} has been approved. Role set to '{role}'.", Severity.Success);
+                await LoadUsersAndRolesAsync();
+
+                return;
+            }
+
+            Snackbar.Add($"Added role '{role}' to {user.Email}.", Severity.Success);
+            await LoadUsersAndRolesAsync();
+        }
+        else
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            Snackbar.Add($"Failed to add role: {errors}", Severity.Error);
+        }
+    }
+
+    private async Task RemoveRoleAsync(ApplicationUser user, string role)
+    {
+        var result = await UserManager.RemoveFromRoleAsync(user, role);
+        if (result.Succeeded)
+        {
+            Snackbar.Add($"Removed role '{role}' from {user.Email}.", Severity.Success);
+            await LoadUsersAndRolesAsync();
+        }
+        else
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            Snackbar.Add($"Failed to remove role: {errors}", Severity.Error);
+        }
+    }
+
+    private void LoadDiskInfo()
+    {
+        var drive = System.IO.DriveInfo.GetDrives()
+            .FirstOrDefault(d => d.IsReady && (d.Name == "/" || d.Name == "C:\\"));
+
+        if (drive != null)
+        {
+            totalGb = drive.TotalSize / 1_073_741_824.0;
+            freeGb = drive.AvailableFreeSpace / 1_073_741_824.0;
+        }
+    }
+
+    private async Task LoadFuelEntriesAsync()
+    {
+        fuelBoats = await FuelLogService.GetBoatNamesAsync();
+        if (selectedBoatFilter is null)
+        {
+            fuelEntries = new(); //none
+            return;
+        }
+
+        fuelEntries = await FuelLogService.GetEntriesAsync(selectedBoatFilter);
+    }
+
+    private void StartEdit(FuelLogEntry entry)
+    {
+        editDraft = new FuelLogEntry
+        {
+            ID = entry.ID,
+            BoatName = entry.BoatName,
+            CrewMember = entry.CrewMember,
+            LogDate = entry.LogDate,
+            Engine1Hours = entry.Engine1Hours,
+            Engine2Hours = entry.Engine2Hours,
+            Fuel1 = entry.Fuel1,
+            Fuel2 = entry.Fuel2,
+            GasCans = entry.GasCans
+        };
+    }
+
+    private void CancelEdit()
+    {
+        editDraft = null;
+    }
+
+    private async Task SaveEditAsync()
+    {
+        if (editDraft is null)
+        {
+            return;
+        }
+
+        await FuelLogService.UpdateAsync(editDraft);
+        Snackbar.Add("Fuel entry updated.", Severity.Success);
+
+        editDraft = null;
+        await LoadFuelEntriesAsync();
+    }
+
+    private async Task ConfirmDeleteFuelEntryAsync(int id)
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            title: "Delete Fuel Entry",
+            markupMessage: (MarkupString)"Are you sure you want to delete this fuel entry?",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirm == true)
+        {
+            await FuelLogService.DeleteAsync(id);
+            Snackbar.Add("Fuel entry deleted.", Severity.Success);
+            await LoadFuelEntriesAsync();
+        }
+    }
+
+    private string GetReportUrl(string boatName) =>
+        $"/reports/fuellog/{Uri.EscapeDataString(boatName)}/{summaryYear}";
+}

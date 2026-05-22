@@ -1,0 +1,61 @@
+﻿@using TowBoatSalvageWebApp.Models
+@inject NavigationManager Nav
+
+<div class="salvage-card border-l-4 border-@StatusBar px-4 py-3 mb-3 rounded-xl shadow-md bg-white">
+    <!-- Top row -->
+    <header class="flex justify-between items-center">
+        <h3 class="font-semibold text-base truncate max-w-[65%]">
+            @VesselName
+        </h3>
+        <span class="text-xs text-gray-500">TEST123</span>
+    </header>
+
+    <!-- Status & timestamps -->
+    <p class="mt-1 text-sm">
+        <strong>@Status</strong>
+        • Test123 Time 8:10pm
+    </p>
+
+    <!-- Key/Value grid (2 columns) -->
+    <dl class="grid grid-cols-2 gap-x-3 gap-y-1 text-sm mt-2">
+        <dt class="font-medium">Location:</dt>
+        <dd>@Location</dd>
+        <dt class="font-medium">Captain:</dt>
+        <dd>@Captain</dd>
+    </dl>
+
+    <!-- Quick-action buttons -->
+    <footer class="flex justify-end gap-2 mt-3">
+        
+    </footer>
+</div>
+
+@code {
+    [Parameter] public SalvageRow Row { get; set; } = default!;
+
+    /* -------- helper properties -------- */
+    string Status => Cell("Status");
+    string RequestedAt => Cell("Date Requested");
+    string Location => Cell("Location");
+    string Captain => Cell("Captain");
+    string Phone => Cell("Phone Number");
+    string VesselName => Cell("Vessel Make");
+    string StatusBar => Status switch
+    {
+        "Pending" => "yellow-400",
+        "En Progress" => "blue-500",
+        "On-scene" => "green-500",
+        _ => "gray-300"
+    };
+
+    string Cell(string label) =>
+        Row.Cells.FirstOrDefault(c => c.Column.Label == label)?.Value ?? "";
+
+    /* -------- actions -------- */
+    Task SetStatus(string s) =>
+        OnStatusChanged.InvokeAsync((Row.Id, s));
+
+    void OpenDetails() => Nav.NavigateTo($"/salvage/{Row.Id}");
+
+    [Parameter] public EventCallback<(int RowId, string NewStatus)> OnStatusChanged { get; set; }
+}

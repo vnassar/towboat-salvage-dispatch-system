@@ -1,0 +1,192 @@
+﻿@using QuestPDF.Fluent;
+@using QuestPDF.Helpers;
+@using QuestPDF.Infrastructure;
+@using QuestPDF.Companion;
+@inject DispatchSignedPdfService PdfService
+@using MudBlazor
+@inject IHttpContextAccessor HttpContextAccessor
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+@page "/"
+@using TowBoatSalvageWebApp.Components.Account.Shared
+@using TowBoatSalvageWebApp.Services
+
+<PageTitle>TowBoatUS Portal</PageTitle>
+@*NAVBAR*@
+<div class="navbar">
+    <div class="logo">
+        <a href="/">
+            <img src="assets/TowBoatLogo.png" alt="TowBoatUS Logo" class="login-logo" />
+        </a>
+    </div>
+</div>
+<section class="hero">
+    <div class="hero-text">
+        <h1>Marine Towing<br>Management System</h1>
+        <p>Access your dashboard to manage boat salvage operations, track vessels, and coordinate rescue efforts.</p>
+        <a href="#" @onclick="NavigateToApp" class="btn">➜ Login to Dashboard</a>
+    </div>
+    <div class="hero-image">
+        <img src="/assets/salvage.jpeg" alt="Boat towing" />
+    </div>
+</section>
+<section class="footer">
+    <div class="footer-text">
+        <p>&copy; American Marine Services, LLC. All rights reserved</p>
+    </div>
+</section>
+
+
+
+
+@code {
+    private string IpAddress = "";
+    private string UserAgent = "";
+
+    private double? _latitude;
+    private double? _longitude;
+    private double? _accuracy;
+    private DateTimeOffset? _timestamp;
+    private string _geoError = "";
+
+    private DotNetObjectReference<Home>? _dotNetRef;
+    private int? _watchId;
+
+
+    private void NavigateToApp()
+    {
+        //check if logged in?
+
+
+        Nav.NavigateTo("/new-document-request");
+    }
+
+
+    private async Task CheckIp()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<IpifyResponse>(
+                "https://api.ipify.org?format=json");
+            IpAddress = response?.ip ?? "";
+            StateHasChanged();
+        }
+        catch
+        {
+            IpAddress = "unable to get ip address";
+        }
+
+        var http = HttpContextAccessor.HttpContext;
+        UserAgent = http?.Request.Headers.UserAgent.ToString() ?? "";
+
+        await GetLocationAsync();
+    }
+
+    private sealed class IpifyResponse
+    {
+        public string? ip { get; set; }
+    }
+
+    private async Task GetLocationAsync()
+    {
+        _geoError = "";
+        try
+        {
+            var pos = await JS.InvokeAsync<GeoPosition>("appGeolocation.getCurrentPosition");
+            UpdatePosition(pos);
+        }
+        catch (JSException jsEx)
+        {
+            _geoError = jsEx.Message;
+        }
+        catch (Exception ex)
+        {
+            _geoError = ex.Message;
+        }
+    }
+
+    private async Task StartWatchAsync()
+    {
+        if (_dotNetRef is null)
+            _dotNetRef = DotNetObjectReference.Create(this);
+
+        // pass options if desired, e.g. { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+        var id = await JS.InvokeAsync<int>("appGeolocation.watchPosition", _dotNetRef);
+        _watchId = id;
+    }
+
+    private async Task StopWatchAsync()
+    {
+        if (_watchId != null)
+        {
+            await JS.InvokeVoidAsync("appGeolocation.clearWatch", _watchId);
+            _watchId = null;
+        }
+    }
+
+    [JSInvokable]
+    public Task ReceivePosition(GeoPosition pos)
+    {
+        UpdatePosition(pos);
+        return Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public Task ReceivePositionError(object error)
+    {
+        // error is a JS object { code, message }
+        _geoError = error?.ToString() ?? "Unknown geolocation error";
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+
+    private void UpdatePosition(GeoPosition pos)
+    {
+        _latitude = pos.latitude;
+        _longitude = pos.longitude;
+        _accuracy = pos.accuracy;
+        _timestamp = DateTimeOffset.FromUnixTimeMilliseconds((long)pos.timestamp);
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await StopWatchAsync();
+        }
+        finally
+        {
+            _dotNetRef?.Dispose();
+            _dotNetRef = null;
+        }
+    }
+
+    public sealed class GeoPosition
+    {
+        public double latitude { get; set; }
+        public double longitude { get; set; }
+        public double accuracy { get; set; }
+        public long timestamp { get; set; }
+    }
+
+
+    /*Hamburger Menu*/
+    private string menuClass = "";
+    private string iconClass = "";
+
+    private void ToggleMenu()
+    {
+        menuClass = menuClass == "open" ? "" : "open";
+        iconClass = iconClass == "open" ? "" : "open";
+    }
+
+        private void CloseMenu()
+    {
+        menuClass = "";
+        iconClass = "";
+    }
+}

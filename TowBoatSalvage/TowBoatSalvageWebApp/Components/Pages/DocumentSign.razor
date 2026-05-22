@@ -1,0 +1,843 @@
+
+@*
+    @page "/document-sign/{Token}"
+    @page "/document-sign/123"
+*@
+
+@page "/document-sign/{Token}"
+@using System.Security.Cryptography
+@using TowBoatSalvageWebApp.Models
+@using TowBoatSalvageWebApp.Services
+@using MudBlazor
+@using System.Text
+@using static TowBoatSalvageWebApp.Services.DispatchSigningLinkService
+@inject ISnackbar Snackbar
+@inject DispatchSigningLinkService LinkService
+@inject DispatchAuditLogService AuditLog
+@inject DispatchSignedPdfService PdfService
+@inject IHttpContextAccessor HttpContextAccessor
+@inject DispatchEmailService EmailService
+@inject IHttpContextAccessor HttpContextAccessor
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<PageTitle>Sign Dispatch Documents</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="pa-4">
+    <MudPaper Elevation="2" Class="pa-4 mt-4">
+        <MudText Class="d-flex justify-center" Typo="Typo.h5">Required Signature</MudText>
+        <MudText Class="d-flex justify-center" Typo="Typo.body2" Color="Color.Secondary">
+            Please review and sign the document below.
+        </MudText>
+
+        <MudDivider Class="my-4" />
+
+        @if (!_isValidToken)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+                This signing link is invalid or has expired.
+            </MudAlert>
+        }
+        else
+        {
+            <div class="doc-header">
+                <MudPaper Elevation="0" Class="pa-3" Style="background-color:#f8f9fa:">
+                    <MudText Class="d-flex justify-center" Typo="Typo.h6">American Marine Services, LLC</MudText>
+                    <MudText Class="d-flex justify-center" Typo="Typo.subtitle2">
+                        13621 Walsingham Road
+                    </MudText>
+                    <MudText Class="d-flex justify-center" Typo="Typo.subtitle2">
+                        Largo, Florida 33774
+                    </MudText>
+                    <br />
+                    <MudText Class="d-flex justify-center" Typo="Typo.subtitle2">
+                        @_formName
+                    </MudText>
+                </MudPaper>
+            </div>
+
+            <MudDivider Class="my-4" />
+
+            if(!isSalvageContract)
+            {
+                <div class="if-captain-forms">
+                    <MudForm @ref="_form">
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudTextField T="string" @bind-Value="_customerName"
+                                              Label="Customer Name"
+                                              Variant="Variant.Outlined"
+                                              Required="true" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField T="string" @bind-Value="_vesselName"
+                                              Label="Vessel Name (optional)"
+                                              Variant="Variant.Outlined"
+                                              Required="false" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField T="string" @bind-Value="_length"
+                                              Label="Vessel Length"
+                                              Variant="Variant.Outlined"
+                                              Required="true" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField T="string" @bind-Value="_makeModel"
+                                              Label="Vessel Make/Model "
+                                              Variant="Variant.Outlined"
+                                              Required="true" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField T="string" @bind-Value="_phoneNumber"
+                                              Label="Customer Phone Number"
+                                              Variant="Variant.Outlined"
+                                              Required="true" />
+                            </MudItem>
+
+
+                            @if (!_formName.Contains("Unaccompanied"))
+                            {
+                                <MudItem xs="12">
+                                    <MudTextField T="string" @bind-Value="_gps"
+                                                  Label="GPS Position"
+                                                  Variant="Variant.Outlined"
+                                                  Required="true" />
+                                </MudItem>
+                            }
+
+
+
+                        </MudGrid>
+                    </MudForm>
+                    @if (_formName.Contains("Unaccompanied"))
+                    {
+                        <MudPaper Elevation="0" Class="pa-3" Style="background-color:#f8f9fa">
+                            <MudText Typo="Typo.body2">
+                                I, @_customerName, owner or owner's agent for the vessel @_vesselName, described as a @_length ft @_makeModel freely acknowledge that I will not accompany the vessel on a tow from @_unaccompaniedOrigin to @_unaccompaniedDestination.
+                            </MudText>
+                        </MudPaper>
+                    }
+                    @if (_formName.Contains("Hazardous"))
+                    {
+                        <MudPaper Elevation="0" Class="pa-3" Style="background-color:#f8f9fa">
+                            <MudText Typo="Typo.body2">
+                                I, @_customerName, owner or owner's agent for the vessel @_vesselName, described as a @_length ft @_makeModel request TowBoatUS/American Marine Services, LLC to rescue my veesel located at @_gps.
+                            </MudText>
+                        </MudPaper>
+                    }
+                    @if (_formName.Contains("Ungrounding"))
+                    {
+                        <MudPaper Elevation="0" Class="pa-3" Style="background-color:#f8f9fa">
+                            <MudText Typo="Typo.body2">
+                                I, @_customerName, owner or owner's agent for the vessel @_vesselName, described as a @_length ft @_makeModel request TowBoatUS/American Marine Services, LLC to unground my veesel located at @_gps.
+                            </MudText>
+                        </MudPaper>
+                    }
+                    @if (_formName.Contains("Mooring"))
+                    {
+                        <MudPaper Elevation="0" Class="pa-3" Style="background-color:#f8f9fa">
+                            <MudText Typo="Typo.body2">
+                                I, @_customerName, owner or owner's agent for the vessel @_vesselName, described as a @_length ft @_makeModel, located at @_gps, agree to hold harmless American Marine Services, LLC, TowBoatUS and its employees, agents and subcontractors for all responsibility, injury or liability that may result in the anchoring/mooring of my vessel. I assume all responsibility for the placement and condition of my equipment.
+                            </MudText>
+                        </MudPaper>
+                    }
+
+                    <MudDivider Class="my-4" />
+
+                    @if (!isMooringForm)
+                    {
+                        <MudPaper Elevation="0" Class="pa-3" Style="background-color:#f8f9fa:">
+                            <MudText Typo="Typo.body2">
+                                @formBodyToShow
+                            </MudText>
+                        </MudPaper>
+                    }
+
+                    <MudDivider Class="my-4" />
+
+                    <MudPaper Elevation="0" Class="pa-3" Style="background-color:#fff8e1;">
+                        <MudText Typo="Typo.subtitle2">Electronic Signature Consent</MudText>
+                        <MudText Typo="Typo.body2">By checking the box below and typing my name, I:</MudText>
+                        <ul>
+                            <li>
+                                <MudText Typo="Typo.body2">Consent to conduct this transaction electronically.</MudText>
+                            </li>
+                            <li>
+                                <MudText Typo="Typo.body2">Agree that my typed name constitutes my legally binding electronic signature..</MudText>
+                            </li>
+                            <li>
+                                <MudText Typo="Typo.body2">Agree that this document is enforceable under:</MudText>
+                            </li>
+
+                            <ul>
+                                <li>
+                                    <MudText Typo="Typo.body2">The Electronic Signatures in Global and National Commerce Act (ESIGN), 15 U.S.C. §7001.</MudText>
+                                </li>
+                                <li>
+                                    <MudText Typo="Typo.body2">The Uniform Electronic Transactions Act (UETA).</MudText>
+                                </li>
+                            </ul>
+
+                            <li>
+                                <MudText Typo="Typo.body2">Agree that this electronic record may be retained and reproduced by American Marine Services, LLC.</MudText>
+                            </li>
+
+                        </ul>
+                    </MudPaper>
+
+                    <MudDivider Class="my-4" />
+
+                    <MudForm>
+                        <MudGrid>
+                            <MudItem xs="12">
+                                <MudCheckBox T="bool" @bind-Value="_agree"
+                                             Required="true"
+                                             Label="I agree to the electronic signature consent above." />
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudTextField T="string" @bind-Value="_signature"
+                                              Label="Signature (Type Full Name)"
+                                              Variant="Variant.Outlined"
+                                              Required="true" />
+                            </MudItem>
+
+                            <MudItem xs="12" Class="d-flex justify-end">
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           OnClick="SubmitSignatureAsync">
+                                    Submit Signature
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+                    </MudForm>
+                </div>
+            }
+            else
+            {
+                <div class="if-salavge-forms">
+                    <MudForm @ref="_form">
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudTextField T="string" @bind-Value="_customerName"
+                                              Label="Customer Name"
+                                              Variant="Variant.Outlined"
+                                              Required="true" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField T="string" @bind-Value="_vesselName"
+                                              Label="Vessel Name (optional)"
+                                              Variant="Variant.Outlined"
+                                              Required="false" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField T="string" @bind-Value="_length"
+                                              Label="Vessel Length"
+                                              Variant="Variant.Outlined"
+                                              Required="true" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField T="string" @bind-Value="_makeModel"
+                                              Label="Vessel Make/Model "
+                                              Variant="Variant.Outlined"
+                                              Required="true" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField T="string" @bind-Value="_phoneNumber"
+                                              Label="Customer Phone Number"
+                                              Variant="Variant.Outlined"
+                                              Required="true" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField T="string" @bind-Value="_underwriter"
+                                              Label="Customer Insurance"
+                                              Variant="Variant.Outlined"
+                                              Required="true" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField T="string" @bind-Value="_delivery"
+                                              Label="Customer Delivery Location"
+                                              Variant="Variant.Outlined"
+                                              Required="true" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudForm>
+                    <div class="page-1">
+                        <MudPaper Elevation="0" Class="pa-3" Style="background-color:#f8f9fa">
+                            <MudText Typo="Typo.body2">
+                                It is hereby agreed on @_salaveContractDate at @_gps by and between @_customerName for the vessel named @_vesselName described as @_length Ft, @_makeModel and insured by: @_underwriter and American Marine Services, LLC, to salvage the vessel under these terms and conditions:
+                            </MudText>
+                        </MudPaper>
+
+                        <MudPaper Elevation="0" Class="pa-3" Style="background-color:#f8f9fa">
+                            <MudText Typo="Typo.body2">
+                                1. Salvor agrees to render assistance to and endeavor to save said vessel and its property and deliver her afloat or ashore at @_delivery marina or port as mutually agreed, or to nearest safe port if unspecified herein, as soon as practicable.
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                2. Salvor shall have the requisite control of the subject yacht and be entitled without expense to the reasonable use of the yacht and its gear in the performance of recovery or salvage operations.  American Marine Services, LLC is not responsible for damages to the vessel that may occur as part of the salvage operation.
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                3. Said salvage operation by the Salvor shall terminate upon delivery of said yacht as designated herein. Owner and Underwriter shall be responsible for all risk of loss after thereafter and for any storage charges or charges for subsequent towing to another port or marina.
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                4. In the event it becomes necessary to obtain legal counsel to enforce the tower’s/salvor’s rights under this contract, whether suit is filed or not, the tower/salvor shall be entitled to recover its costs and expenses, including but not limited to reasonable attorneys’ fees, incurred in the enforcement and/or collection of this contract.  Salvage services are undertaken under one of the following agreements by Owner and Salvor:
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                (a)  Pure Salvage - Compensation, including special compensation, to be determined under ARTICLES 13 and 14, SALCON 89, and U.S. Admiralty Law.
+                            </MudText>
+                            
+                                @if (_salvagePricingModel.Contains("Pure"))
+                                {
+                                    <MudForm>
+                                        <MudGrid>
+                                            <MudItem xs="12">
+                                                <MudTextField T="string" @bind-Value="_priceSignature"
+                                                              Label="Signature (Type Full Name)"
+                                                              Variant="Variant.Outlined"
+                                                              Required="true" />
+                                            </MudItem>
+                                        </MudGrid>
+                                    </MudForm> @*signature*@
+                                }
+                                
+                            
+                            <MudText Typo="Typo.body2">
+                                (b)  Fixed Price (No Cure/No Pay) of $@_quote afloat at point of service. Delivery ashore or to a marina or boat ramp is on a time and material basis using the rates listed in paragraph 4 (c) below.
+                            </MudText>
+                            @if (_salvagePricingModel.Contains("Fixed"))
+                            {
+                                <MudForm @ref="_priceSignatureForSalvageForm">
+                                    <MudGrid>
+                                        <MudItem xs="12">
+                                            <MudTextField T="string" @bind-Value="_priceSignature"
+                                                          Label="Signature (Type Full Name)"
+                                                          Variant="Variant.Outlined"
+                                                          Required="true" />
+                                        </MudItem>
+                                    </MudGrid>
+                                </MudForm> @*signature*@
+                            }
+                            
+                            <MudText Typo="Typo.body2">
+                                (c) Time and Material - Payable at all events; hourly rates are billed portal to portal.  Hourly rates are uplifted by 100% for hazardous/explosive conditions, including Small Craft Advisory conditions.  Labor rates increase by 50% from 1800 to 0800 and on weekends. Outside Contractors, Equipment and Supplies are invoiced at cost plus 20%. Environmental services invoiced separately at cost plus 20%.
+                            </MudText>
+                            <MudSimpleTable Dense="true">
+                                <thead>
+                                    <tr>
+                                        <th>Personel/Equipement?</th>
+                                        <th>Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in SalvageTables)
+                                    {
+                                        var parts = item.Split('$', 2, StringSplitOptions.TrimEntries);
+                                        var personnel = parts[0];
+                                        var rate = parts[1];
+
+                                        <tr>
+                                            <td>@personnel</td>
+                                            <td>@rate</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </MudSimpleTable>
+                            <MudText Typo="Typo.body2">
+                                Plus, Recovery/Ungrounding fee of ______________ per foot times length of vessel when job is complete.
+                            </MudText>
+
+                            @if (_salvagePricingModel.Contains("Time"))
+                            {
+                                <MudForm>
+                                    <MudGrid>
+                                        <MudItem xs="12">
+                                            <MudTextField T="string" @bind-Value="_priceSignature"
+                                                          Label="Signature (Type Full Name)"
+                                                          Variant="Variant.Outlined"
+                                                          Required="true" />
+                                        </MudItem>
+                                    </MudGrid>
+                                </MudForm> @*signature*@
+                            }
+                        </MudPaper>
+                    </div>
+                    <div class="page-2">
+                        <MudPaper Elevation="0" Class="pa-3" Style="background-color:#f8f9fa">
+                            <MudText Typo="Typo.body2">
+                                5. Compensation to Salvor for the services performed hereunder shall be in accordance with a billing and any supportive analysis of the salvage operation to be presented to Owner and/or Underwriter's agents upon completion of salvage. Billing to be calculated on the basis specified in No. 4.  No agreement on price or its reasonableness has been made at the scene unless agreed to in writing.
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                6. Salvor shall be entitled to a reasonable allowance for prevention or minimization of environmental damage in accordance with Articles 13 & 14 of the 1989 International Convention on Salvage, as well as for clean up or wreck removal billed on a time & material basis should the vessel be deemed a constructive total loss.  Owner of vessel is solely responsible for all environmental damages that may result from the loss and subsequent salvage of the vessel.
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                7. Payment is due promptly upon presentation of Salvor's bill. In the event the Owner or Captain or the vessel’s insurer fails to make prompt payment, Salvor may claim a lien on the vessel for the value of the services rendered.  Interest shall accrue at the rate of one and one-half (1.5%) percent per month or the maximum legal rate allowed by law on any unpaid balance from 30 days after completion of the salvage services and presentation of the bill or as may be determined in accordance with the findings of any Court or Arbitration Award.
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                8. In the event of any dispute regarding this salvage or concerning the reasonableness of any fees or charges due hereunder, all parties agree to binding arbitration pursuant to The Boat Owners' Association of the United States' Salvage Arbitration Plan.  If either party must compel binding arbitration, all parties consent to the jurisdiction and venue of the Federal Court Middle District of Florida upon service of process made in accordance with the statutes of the United States.  All parties waive any and all rights to object to in personam jurisdiction in said described forum for the purpose of litigation commenced to compel arbitration.
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                9. It is understood that services performed hereunder are governed by the Admiralty and Maritime Jurisdiction of the Federal Courts and create a maritime lien against the yacht or its posted security. Salvor's lien shall be preserved until payment. Salvor agrees in lieu of arrest or attachment to accept from the yacht's Underwriter, a Letter of Undertaking for an amount equal to one and one- half (1.5) times the presented billing with a copy of the insurance policy and coverage information. If the yacht is uninsured or its Underwriter cannot provide a Letter of Undertaking, Salvor may demand the posting of a Surety Bond with its designated Escrow Agent in an amount equal to 1.5 times the Salvor's bill within 60 days of receipt of the salvor’s bill. Salvor may satisfy collection of fees or charges hereunder by recourse to any security posted and shall be entitled to any costs incurred in collection of payments due hereunder including reasonable attorney’s fees subject to the findings of any arbitration or court.
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                10. Should Salvor be required to compel arbitration by court action, Salvor shall be entitled to recover from the Owner, Captain and/or the vessel’s Insurer, all costs and fees incurred by Salvor, including attorney’s fees.
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                11. Salvor hereby warrants that it is acting on its own behalf and on behalf of any subcontractors retained by Salvor to perform services in the recovery or delivery of the yacht. Salvor shall be responsible for any such subcontractors' compensation.
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                12. In the event the Salvor has already rendered salvage services to the described yacht prior to execution of this contract, the provisions of this contract shall apply to such salvage services.
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                13. I hereby acknowledge and agree to the authorization for Assignment of Insurance Benefits and Direct Payment Authorization to American Marine Services, LLC for all services rendered under this salvage agreement contract.
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                (initial) I make this assignment and authorization in consideration for the salvage serveries rendered.
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                I acknowledge that I understand the obligations set forth in this agreement.
+                            </MudText>
+                            <MudDivider Class="my-4" />
+
+                            <MudPaper Elevation="0" Class="pa-3" Style="background-color:#fff8e1;">
+                                <MudText Typo="Typo.subtitle2">Electronic Signature Consent</MudText>
+                                <MudText Typo="Typo.body2">By checking the box below and typing my name, I:</MudText>
+                                <ul>
+                                    <li>
+                                        <MudText Typo="Typo.body2">Consent to conduct this transaction electronically.</MudText>
+                                    </li>
+                                    <li>
+                                        <MudText Typo="Typo.body2">Agree that my typed name constitutes my legally binding electronic signature..</MudText>
+                                    </li>
+                                    <li>
+                                        <MudText Typo="Typo.body2">Agree that this document is enforceable under:</MudText>
+                                    </li>
+
+                                    <ul>
+                                        <li>
+                                            <MudText Typo="Typo.body2">The Electronic Signatures in Global and National Commerce Act (ESIGN), 15 U.S.C. §7001.</MudText>
+                                        </li>
+                                        <li>
+                                            <MudText Typo="Typo.body2">The Uniform Electronic Transactions Act (UETA).</MudText>
+                                        </li>
+                                    </ul>
+
+                                    <li>
+                                        <MudText Typo="Typo.body2">Agree that this electronic record may be retained and reproduced by American Marine Services, LLC.</MudText>
+                                    </li>
+
+                                </ul>
+                            </MudPaper>
+
+                            <MudDivider Class="my-4" />
+
+                            <MudForm>
+                                <MudGrid>
+                                    <MudItem xs="12">
+                                        <MudCheckBox T="bool" @bind-Value="_agree"
+                                                     Required="true"
+                                                     Label="I agree to the electronic signature consent above." />
+                                    </MudItem>
+
+                                    <MudItem xs="12">
+                                        <MudTextField T="string" @bind-Value="_signature"
+                                                      Label="Signature (Type Full Name)"
+                                                      Variant="Variant.Outlined"
+                                                      Required="true" />
+                                    </MudItem>
+
+                                    <MudItem xs="12" Class="d-flex justify-end">
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Primary"
+                                                   OnClick="SubmitSignatureAsync">
+                                            Submit Signature
+                                        </MudButton>
+                                    </MudItem>
+                                </MudGrid>
+                            </MudForm>
+                        </MudPaper>
+                    </div>
+                    
+                </div>
+            }
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Parameter] public string? Token { get; set; }
+    //public string? Token { get; set; }
+
+    private MudForm? _form;
+    private MudForm? _priceSignatureForSalvageForm;
+
+    private bool _isValidToken = true; // return to true when done styling page
+    private SigningLinkInfo? _linkInfo;
+    private string _customerName = "";
+    private string _customerEmail = "";
+    private string _boatRegistration = "";
+    private string _length = "";
+    private string _makeModel = "";
+    private string _vesselName = "";
+    private string _phoneNumber = "";
+    private string _gps = "";
+    private string _signature = "";
+    private string _captainName = "";
+    private string _captainSignature = "";
+    private string _unaccompaniedOrigin = "";
+    private string _unaccompaniedDestination = "";
+    private string _formName = "";
+    private string _salvagePricingModel = "";
+    private string _priceSignature = "";
+    private bool _agree = false;
+
+    private string IpAddress = "";
+    private string UserAgent = "";
+
+    private string _underwriter = "";
+    private string _delivery = "";
+    private string _quote = "";
+    private string _claimNumber = "";
+    private string _customerAddress = "";
+    private string _salaveContractDate = "";
+
+    string[] SalvageTables =
+    {
+        "Salvage Master $325/hr",
+        "Dive Master $275/hr",
+        "Salvage Diver $175/hr",
+        "Operations Center $500/day",
+
+        "USCG Captain $130/hr",
+        "Salvor $115/hr",
+        "Skilled Labor $90/hr",
+        "Service Vehicle $250/day",
+
+        "Salvage Vessel $375/hr",
+        "Electric Pump $75/hr",
+        "Gas Engine Pump $125/hr",
+        "Reconstitute/Repack $1000/job",
+
+        "Salvage Vehicle $400/day",
+        "2200lb Air Bag $400/day",
+        "4400lb Air Bag $600/day",
+        "Boat Trailer $350/day"
+    };
+
+    private bool isSalvageContract => _formName.Contains("Salvage");
+
+    private DocumentSignatureRequest? _request;
+
+    private const string _documentVersion = "v1";
+
+    private string _ungrounding = "I understand that my vessel is aground and therefore subject to the perils of the sea. I acknowledge the possibility of damage to my vessel as the result of the grounding and refloating effort and I agree to hold harmless American Marine Services, LLC, BoatU.S. or Compass Marine Services and its employees, agents and subcontractors for all damages, injury or liability that may result during this event. In addition, I warrant that the vessel described above can withstand the rigors of being towed and ungrounded. If applicable, I acknowledge that the wing keel of my vessel may be damaged during the ungrounding. I understand that the billing for this service will be computed from the time the towboat leaves its dock until it returns to its home dock as well as the ungrounding fee and that I have only been provided an estimate for the total charges required for the ungrounding/tow. I explicitly understand the actual elapsed time as well as the stated ungrounding fee will be billed and I agree to pay the charges without question or condition or to provide a valid Towing Services Membership with sufficient towing coverage to pay the charges. I understand that should some unforeseen condition arise that causes my vessel to be placed in further peril during the tow/ungrounding, to include if my vessel begins to take on water, I authorize American Marine Services, LLC, its employees, agents and subcontractors to salvage the vessel to the best of their ability. I agree that should salvage become necessary that compensation, including special compensation, will be determined under Articles 13 and 14, SALCON 89 and U.S. Admiralty Law. I further understand that I am personally responsible for all costs of any such salvage.";
+
+    private string _hazardous = "I understand that my vessel is disabled in a hazardous area, strewn with underwater hazards and therefore subject to the perils of the sea. I request American Marine Services, LLC, DBA TowBoatUS to tow my vessel to safety and realize that it may suffer damage by striking underwater objects during rescue. I agree to hold harmless American Marine Services, LLC, TowBoatUS and its employees, agents and subcontractors for all damages, injury or liabiilty that may result during this event. In addition, I warrant that the vessel described above can withstand the rigors of being towed and ungrounded should that become necessary. I understand that should some unforeseen condition arise that causes my vessel to be placed in further peril during the tow, to include if my vessel beings to take on water, I authorize American Marine Services, LLC, its employees, agents and subcontractors to salvage this vessel to the best of their ability. I understand that the billing for this tow will be computed from the time the towboat leaves its dock until it treturns to its home dock as well as the ungrounding fee if required and that I have only been provided an estimate for the total charges. I explicitly understand that actual elapsed time is the basis for the invoice charges and that if I do not have towing services with a current membership that will fully pay said charges that I will pay all charges without question or condition. I agree that should salvage become necessary that compensation, including special compensation, will be determined under Article 13 and 14, SALCON 89 and U.S. Admiralty Law. I further understand that I am personally responsible for all costs of any such salvage.";
+
+    private string _unAccompanied = "Therefore, since I have elected not to be present during the towage, I agree to hold harmless American Marine Services, LLC, TowBoatUS and its employees, agents and subcontractors for all damages, injury or liability that may result during this tow. In addition, I warrant that the vessel described above is seaworthy and in good repair and that the vessel described above can withstand the rigors of being towed. I understand that should some unforeseen condition arise that causes my vessel to be in peril during the tow, to include if my vessel begins to take on water, I authorize American Marine Services, LLC, its employees, agents and subcontractors to salvage the vessel to the best of their ability. I agree that should salvage become necessary that compensation, including special compensation, will be determined under Articles 13 and 14, SALCON 89 and U.S. Admiralty Law. I further understand that I am personally responsible for all costs of any such salvage. I further understand that the billing for this tow will be computed from the time the towboat leaves its dock until it returns to its home dock and that I have only been provided an estimate for the total time required for the tow. I explicitly understand the actual elapsed time will be billed and I agree to pay the actual time without question or condition.";
+
+    private string _mooring = "Agree to hold harmless American Marine Services, LLC, TowBoatUS and its employees, agents and subcontractors for all responsibility, injury or liability that may result in the anchoring/mooring of my vessel. I assume all responsibility for the placement and condition of my equipment.";
+
+    private string _origin = "";
+    private string _destination = "";
+
+    private string _consentText = 
+        "By checking the box below and typing my name, I:Consent to conduct this transaction Agree that my typed name constitutes my legally binding electronic signature. Agree that this document is enforceable under: The Electronic Signatures in Global and National Commerce Act (ESIGN), 15 U.S.C. §7001 The Uniform Electronic Transactions Act (UETA) Agree that this electronic record may be retained and reproduced by American Marine Services, LLC.";
+
+    private string _creditCard =
+        "You authorize a single charge to your credit or debit card. You will be charged the amount indicated below. A receipt for each payment will be provided to you and the charge will appear on your credit card or bank statement.";
+
+    private string formBodyToShow = "";
+    private bool isMooringForm = false;
+    private string linkSentAt = "";
+    private string linkExpiresAt = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await GetDocumentInfoAsync();
+    }
+
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (!firstRender)
+    //     {
+    //         Snackbar.Add($"pricing model: {_salvagePricingModel}", Severity.Info);
+    //         await Task.CompletedTask;
+    //     }
+
+    // }
+
+    private async Task GetDocumentInfoAsync()
+    {
+        var rawToken = Token is null ? null : Uri.UnescapeDataString(Token);
+        _request = rawToken is null ? null : await LinkService.GetValidRequestAsync(rawToken);
+        _isValidToken = _request is not null;
+
+        //link info
+        linkSentAt = _request?.SentAtUtc.ToLocalTime().ToString("g") ?? "";
+        linkExpiresAt = _request?.ExpiresAtUtc.ToLocalTime().ToString("g") ?? "";
+
+        //get info
+        _customerName = _request?.CustomerName ?? "";
+        _gps = _request?.GPS ?? "";
+        _length = _request?.VesselLength ?? "";
+        _makeModel = _request?.VesselMakeModel ?? "";
+        _phoneNumber = _request?.CustomerPhone ?? "";
+
+        _unaccompaniedOrigin = _request?.UnaccompaniedOrigin ?? "";
+        _unaccompaniedDestination = _request?.UnaccompaniedDestination ?? "";
+        // captain name and captain signature are the same.
+        _captainName = _request?.CaptainName ?? "";
+        _captainSignature = _request?.CaptainName ?? "";
+        _customerEmail = _request?.CustomerEmail ?? "";
+
+        //salvage form + quote for credit card authorization
+        _underwriter = _request?.Underwriter ?? "";
+        _delivery = _request?.Delivery ?? "";
+        _quote = _request?.Quote ?? "";
+        _salaveContractDate = _request?.SentAtUtc.ToLocalTime().ToString("g") ?? "";
+        _claimNumber = _request?.ClaimNumber ?? "";
+        _customerAddress = _request?.CustomerAddress ?? "";
+        _vesselName = _request?.VesselName ?? "";
+        _salvagePricingModel = _request?.SalvagePricingModel ?? "";
+
+        //set which form to display
+
+        GetFormFromRequest(_request!);
+    }
+
+    private void GetFormFromRequest(DocumentSignatureRequest request)
+    {
+        if (request is not null)
+        {
+            _formName = request.FormName;
+
+            if (request.FormName.Contains("Ungrounding"))
+            {
+                formBodyToShow = _ungrounding;
+            }
+
+            if (request.FormName.Contains("Hazardous"))
+            {
+                formBodyToShow = _hazardous;
+            }
+
+            if (request.FormName.Contains("Unaccompanied"))
+            {
+                formBodyToShow = _unAccompanied;
+            }
+
+            if (request.FormName.Contains("Mooring"))
+            {
+                formBodyToShow = _mooring;
+                isMooringForm = true;
+            }
+
+            if (request.FormName.Contains("Credit"))
+            {
+                formBodyToShow = _creditCard;
+            }
+        }
+
+    }
+
+    private async Task SubmitSignatureAsync()
+    {
+        if (_form is null) return;
+
+        await _form.Validate();
+
+        if (!_form.IsValid || !_agree)
+        {
+            Snackbar.Add("Please complete all required fields and agree to the terms.", Severity.Warning);
+            Snackbar.Add($"form is valid: {_form.IsValid}. Checkboxed: {_agree}", Severity.Warning);
+            return;
+        }
+
+        if (isSalvageContract)
+        {
+            if (_priceSignatureForSalvageForm is null) return;
+
+            await _priceSignatureForSalvageForm.Validate();
+
+            if (!_priceSignatureForSalvageForm.IsValid)
+            {
+                Snackbar.Add("Please agree and sign in the pricing and quote section.", Severity.Warning);
+                return;
+            }
+        }
+
+        // to-do: Change this from formBodyToShow to the entire pdfbytes?
+        var documentHash = ComputeSha256(formBodyToShow);
+
+        // to-do: this is executing in SSR therefor getting my own ip each time lol... fix
+        await CheckIp();
+
+        var auditEntry = new DispatchAuditEntry
+        {
+            Token = Token ?? "",
+            CustomerName = _customerName,
+            CustomerEmail = _customerEmail,
+            FormName = _formName,
+            ConsentText = _consentText,
+            SignedAtUtc = DateTime.UtcNow,
+            IpAddress = IpAddress,
+            UserAgent = UserAgent,
+            DocumentVersion = _documentVersion, //ignore
+            DocumentHashSha256 = documentHash,
+            ConsentChecked = _agree,
+            SignatureText = _signature
+        };
+
+        var pdfModel = new DispatchSignedPdfModel
+        {
+            Token = Token ?? "",
+            SentAt = linkSentAt,
+            ExpiresAt = linkExpiresAt,
+            CustomerName = _customerName,
+            CustomerEmail = _customerEmail,
+            CustomerPhoneNumber = _phoneNumber,
+            FormName = _formName,
+            BoatRegistration = _boatRegistration,
+            VesselLength = _length,
+            VesselMakeModek = _makeModel,
+            GPS = _gps,
+            CaptainName = _captainName,
+            CaptainSignature = _captainSignature,
+            VesselName = _vesselName,
+            UnaccompaniedOrigin = _unaccompaniedOrigin,
+            UnaccompaniedDestination = _unaccompaniedDestination,
+            Underwriter = _underwriter,
+            Delivery = _delivery,
+            Quote = _quote,
+            ClaimNumber = _claimNumber,
+            CustomerAddress = _customerAddress,
+            PriceSignature = _priceSignature,
+
+
+            Signature = _signature,
+            ConsentText = _consentText,
+            DocumentContent = formBodyToShow,
+            DocumentHashSha256 = documentHash,
+            DocumentVersion = _documentVersion,
+            SignedAtUtc = DateTime.UtcNow,
+
+            AuditEntry = auditEntry
+        };
+
+        //pdf
+        var pdfBytes = isSalvageContract ? PdfService.BuildStandardFormSalvageContractPdf(pdfModel) : PdfService.BuildSignedPdf(pdfModel);
+
+        auditEntry.SignedPdfHashSha256 = ComputeSha256Pdf(pdfBytes);
+
+        AuditLog.Add(auditEntry);
+
+        //pdf
+        var auditTrail = PdfService.BuildAuditTrail(pdfModel);
+
+        var captainEmail = "vctrnssr@gmail.com";
+        var safeFormName = (_linkInfo?.FormName ?? "DispatchForm").Replace(" ", "-");
+        var fileName = $"Signed-NameHere.pdf";
+
+        //add email feature when saving to db works
+
+        /*
+        await EmailService.SendWithAttachmentAsync(
+        to: captainEmail,
+        subject: "TowboatUS Signed Document",
+        body: $"Customer {_customerName} signed {_linkInfo?.FormName}",
+        fileName: fileName,
+        fileBytes: pdfBytes
+        );
+        */
+
+       // mark signed for UI
+        await LinkService.MarkSignedAsync(
+            Uri.UnescapeDataString(Token),
+            _customerName,
+            _phoneNumber,
+            _length,
+            _makeModel,
+            _signature,
+            _gps,
+            pdfBytes,
+            auditTrail
+        );
+
+        if (Token is not null) LinkService.MarkUsed(Uri.UnescapeDataString(Token));
+
+        //add email sending again after saving to db works
+        /*
+        await EmailService.SendAsync(
+        _linkInfo?.CaptainEmail ?? "vctrnssr@gmail.com",
+        "TowBoat Salvage - Documents Signed",
+        $"Customer {_customerName} signed {_linkInfo?.FormName} at {DateTime.UtcNow:O} (UTC).\n the email bound was: {_linkInfo?.CaptainEmail}", );
+        */
+
+
+        Snackbar.Add("Signature submitted successfullly.", Severity.Success);
+
+        _customerName = "";
+        _boatRegistration = "";
+        _signature = "";
+        _gps = "";
+        _length = "";
+        _makeModel = "";
+        _phoneNumber = "";
+        _vesselName = "";
+
+        _agree = false;
+
+        StateHasChanged();
+
+        Nav.NavigateTo("/thank-you");
+    }
+
+    private async Task CheckIp()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<IpifyResponse>(
+                "https://api.ipify.org?format=json");
+            IpAddress = response?.ip ?? "";
+            //StateHasChanged();
+        }
+        catch
+        {
+            IpAddress = "unable to get ip address";
+        }
+
+        var http = HttpContextAccessor.HttpContext;
+        UserAgent = http?.Request.Headers.UserAgent.ToString() ?? "";
+
+        //await GetLocationAsync();
+    }
+
+    private sealed class IpifyResponse
+    {
+        public string? ip { get; set; }
+    }
+
+    private static string ComputeSha256Pdf(byte[] content)
+    {
+        var hash = SHA256.HashData(content);
+        return Convert.ToHexString(hash);
+    }
+    
+
+    private static string ComputeSha256(string content)
+    {
+        var bytes = Encoding.UTF8.GetBytes(content);
+        var hash = SHA256.HashData(bytes);
+        return Convert.ToHexString(hash);
+    }
+}

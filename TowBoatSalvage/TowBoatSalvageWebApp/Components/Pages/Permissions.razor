@@ -1,0 +1,26 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using TowBoatSalvageWebApp.Data
+@inject UserManager<ApplicationUser> UserManager
+<h3>Permissions :D </h3>
+
+@code {
+    [Parameter] public bool IsFromAdminDashboard { get; set; }
+
+
+    private List<ApplicationUser> users = new();
+    private Dictionary<string, List<string>> userPermissions = new();
+
+    private async Task LoadUsersAndPermissionsAsync()
+    {
+        users = await UserManager.Users.OrderBy(u => u.Email).ToListAsync();
+
+
+        foreach (var user in users)
+        {
+            //get permissions for the user
+
+            // pausing temporarily. This feature not currently needed.
+        }
+    }
+}

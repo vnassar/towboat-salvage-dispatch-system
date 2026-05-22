@@ -1,0 +1,93 @@
+﻿@page "/admin/user-approvals"
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using TowBoatSalvageWebApp.Components.Pages.NavBar
+@using TowBoatSalvageWebApp.Data
+@using TowBoatSalvageWebApp.Services
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ToastService ToastService
+
+<NavigationBar />
+
+@if (isUserAnAdmin)
+{
+    <h3>Pending User Approvals</h3>
+    @if (pendingUsers.Count == 0)
+    {
+        <div>No pending users.</div>
+    }
+    else
+    {
+        <table class="table-striped">
+            <tr>
+                <th>Email</th>
+                <th>Approve</th>
+            </tr>
+            @foreach (var user in pendingUsers)
+            {
+                <tr>
+                    <td>@user.Email</td>
+                    <td>
+                        <button class="btn btn-success" @onclick="@(() => ApproveUser(user.Id))">Approve</button>
+                    </td>
+                </tr>
+            }
+        </table>
+    }
+}
+@if (!isUserAnAdmin)
+{
+    <h3>You are not allowed to navigate this page...</h3>
+}
+
+
+@code {
+    private List<ApplicationUser> pendingUsers = new();
+
+    private bool isUserAnAdmin = false;
+    private ApplicationUser? currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        pendingUsers = (await UserManager.Users.Where(u => !u.isApproved).ToListAsync());
+
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userPrincipal = authState.User;
+        if (userPrincipal.Identity?.IsAuthenticated == true)
+        {
+            var email = userPrincipal.Identity.Name;
+            currentUser = await UserManager.FindByEmailAsync(email);
+        }
+
+        if (currentUser != null && currentUser.Email == "vctrnssr@gmail.com")
+        {
+            currentUser.isAdmin = true;
+        }
+
+        if (currentUser != null && currentUser.isAdmin)
+        {
+            isUserAnAdmin = true;
+        }
+        else
+        {
+            Console.WriteLine("You are not allowed to see this page...");
+        }
+
+    }
+
+    private async Task ApproveUser(string userId)
+    {
+        var user = await UserManager.FindByIdAsync(userId);
+        if (user != null)
+        {
+            user.isApproved = true;
+            await UserManager.UpdateAsync(user);
+            pendingUsers.RemoveAll(u => u.Id == userId);
+            StateHasChanged();
+
+            await ToastService.ShowToast($"User: {user} has been approved.", "success");
+        }
+    }
+}

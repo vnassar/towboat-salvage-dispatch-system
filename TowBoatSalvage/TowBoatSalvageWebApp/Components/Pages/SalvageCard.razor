@@ -1,0 +1,303 @@
+﻿@using TowBoatSalvageWebApp.Models
+@using TowBoatSalvageWebApp.Services
+@inject NavigationManager Nav
+@inject ToastService ToastService
+
+
+@*
+    <div class="salvage-card @GetStatusClass()">
+    <div class="card-header">
+        <span class="status">@GetCellValue("Status")</span>
+        <span class="dispatch-number">@GetCellValue("G#")</span>
+    </div>
+    <div class="card-body">
+        <div><b>Customer:</b> @GetCellValue("Name")</div>
+        <div><b>Phone Number:</b> @GetCellValue("Phone Number")</div>
+        <div><b>Vessel:</b> @GetCellValue("Vessel Length") @GetCellValue("Vessel Make")</div>
+        <div><b>Date:</b> @GetCellValue("Date")</div>
+    </div>
+    <div class="card-footer">
+        <span class="file-count">📷 @GetFileCount() files</span>
+        <span class="note-badge">📝 @GetNotePreview()</span>
+        <!--quick action buttons-->
+        <button class="btn btn-link" @onclick="OnEdit">Edit</button>
+        <button class="btn btn-link" @onclick="OnUpload">Upload Picture</button>
+        <button class="btn btn-link" @onclick="OnMarkComplete">Mark Complete</button>
+    </div>
+</div>
+*@
+
+
+
+@* REFACTORING HERE !!!!!*@
+<div class="salvage-card">
+    @*header: name + status pill on the right*@
+    <div class="sc-header">
+        <div class="sc-title">@GetCellValue("Name")</div>
+            @if (IsCompleted)
+            {
+                <span class="sc-badge sc-badge--completed">Completed</span>
+            }
+            else if (IsInProgress)
+            {
+                <span class="sc-badge sc-badge--progress">In Progress</span>
+            }
+            else
+            {
+                <span class="sc-badge sc-badge--new">New</span>
+            }
+        </div>
+
+@*body*@
+<div class="sc-body">
+    <div class="sc-line">
+        @*phone*@
+        <svg class="sc-ico" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6.6 10.8a15.1 15.1 0 006.6 6.6l2.2-2.2a1 1 0 011.1-.24c1.2.48 2.6.74 4 .74a1 1 0 011 1V20a1 1 0 01-1 1C11.85 21 3 12.15 3 1a1 1 0 011-1h3.3a1 1 0 011 1c0 1.38.26 2.73.74 3.95a1 1 0 01-.24 1.1L6.6 10.8z" />
+        </svg>
+        <a class="sc-link" href="tel:@GetCellValue("Phone Number")">@GetCellValue("Phone Number")</a>
+    </div>
+    <div class="sc-line">
+        @*Add href to google maps here with address as hyperlink *@
+        @if (!string.IsNullOrEmpty(_address))
+        {
+            <svg class="sc-ico" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L2 8.207V13.5A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5V8.207l.646.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293zM13 7.207V13.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V7.207l5-5z" />
+            </svg>
+            <a class="sc-link" href="@GetGoogleMapsUrl()" target="_blank" rel="noopener noreferrer" title="Open in Google Maps">@_address</a>
+        }
+    </div>
+
+    <div class="sc-line sc-subtle">
+        Vessel: @GetCellValue("Vessel Make"), @GetCellValue("Vessel Length")
+    </div>
+</div>
+
+@*Row: photos + notes + chevron*@
+<div class="sc-meta">
+    <div class="sc-meta-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-card-image" viewBox="0 0 16 16">
+                <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0" />
+                <path d="M1.5 2A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2zm13 1a.5.5 0 0 1 .5.5v6l-3.775-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12v.54L1 12.5v-9a.5.5 0 0 1 .5-.5z" />
+            </svg>
+            <button class="sc-linkbtn" @onclick="HandleOpenPhotos">Photos</button>
+    </div>
+    <div class="sc-meta-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-journals" viewBox="0 0 16 16">
+                <path d="M5 0h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2 2 2 0 0 1-2 2H3a2 2 0 0 1-2-2h1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1H1a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1H3a2 2 0 0 1 2-2" />
+                <path d="M1 6v-.5a.5.5 0 0 1 1 0V6h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0V9h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 2.5v.5H.5a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1H2v-.5a.5.5 0 0 0-1 0" />
+            </svg>
+            <button class="sc-linkbtn" @onclick="HandleOpenNotes">Notes</button>
+    </div>
+    <div class="sc-meta-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-square" viewBox="0 0 16 16">
+                <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z" />
+                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
+            </svg>
+            <label class="sc-linkbtn"> Upload Picture <InputFile OnChange="OnUploadPhoto" accept="image/*" style="display:none" /> </label>
+    </div>
+    <div class="sc-meta-spacer"></div>
+
+    @*
+        <button type="button" class="sc-chevron" aria-label="Expand">
+        <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
+    </button>
+    *@
+</div>
+
+@*footer*@
+@if (IsCompleted)
+{
+    <div class="sc-complete-banner">
+        <svg class="sc-ico" viewBox="0 0 24 24"><path d="M9 16.2l-3.5-3.6L4 14l5 5 12-12-1.5-1.4z"/></svg>
+            Completed
+    </div>
+}
+else
+{
+    <div class="sc-actions">
+        @if (IsNewOrAssigned)
+        {
+            <button class="sc-btn sc-btn--amber" @onclick="HandleMarkInProgress">
+                <svg viewBox="0 0 24 24"><path d="M5 13h14v-2H5v2z" /></svg>
+                Mark In Progress
+            </button>
+        }
+        @if (!IsCompleted)
+        {
+            <button class="sc-btn sc-btn--green" @onclick="HandleMarkComplete">
+                <svg viewBox="0 0 24 24"><path d="M9 16.2l-3.5-3.6L4 14l5 5 12-12-1.5-1.4z" /></svg>
+                Mark Complete
+            </button>
+        }
+    </div>
+}
+</div>
+
+
+
+
+@code {
+    /*
+    Todo: 
+        1. Add addres, hyperlinks to maps
+        2. Mark "In progress"
+        3. Mark "Completed" - done
+        4. Update photos / add photos
+        5. view photo gallery
+        6.Update UI looks terrible
+     */
+
+    [Parameter] public SalvageRow Row { get; set; }
+    [Parameter] public List<SalvageColumn> Columns { get; set; } = new();
+    [Parameter] public EventCallback OnEdit { get; set; }
+    [Parameter] public EventCallback OnUpload { get; set; }
+    [Parameter] public EventCallback OnMarkComplete { get; set; }
+    [Parameter] public EventCallback OnMarkInProgress { get; set; }
+
+
+    [Parameter] public EventCallback OnOpenPhotos { get; set; }
+    [Parameter] public EventCallback OnOpenNotes { get; set; }
+
+    [Parameter] public EventCallback<InputFileChangeEventArgs> OnUploadPhoto { get; set; }
+
+    private Task HandleOpenPhotos() =>
+        OnOpenPhotos.HasDelegate ? OnOpenPhotos.InvokeAsync(Row) : Task.CompletedTask;
+
+    private Task HandleOpenNotes() =>
+        OnOpenNotes.HasDelegate ? OnOpenNotes.InvokeAsync(Row) : Task.CompletedTask;
+
+
+
+    private string Status => (GetCellValue("Status") ?? string.Empty).Trim();
+
+    private bool IsCompleted => Status.Contains("Salvage Done", StringComparison.OrdinalIgnoreCase);
+    private bool IsInProgress => Status.Contains("In Progress", StringComparison.OrdinalIgnoreCase);
+    private bool IsNewOrAssigned =>
+        string.IsNullOrEmpty(Status) ||
+        Status.Contains("Not Assigned", StringComparison.OrdinalIgnoreCase) ||
+        Status.Contains("Assigned", StringComparison.OrdinalIgnoreCase);
+
+    private string _address = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        _address = ExtractAddressFromNotes();
+        Console.WriteLine($"************************************************************************************************************************Address is: {_address}");
+    }
+    private string ExtractAddressFromNotes()
+    {
+        var col = Columns.FirstOrDefault(c => c.Label.Contains("Notes", StringComparison.OrdinalIgnoreCase));
+        if (col == null) return string.Empty;
+
+        var cell = Row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+        var notes = cell?.Value ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(notes)) return string.Empty;
+
+        var lines = notes
+            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(l => l.Trim());
+
+        foreach (var line in lines)
+        {
+            Console.WriteLine(line);
+            if (line.Contains("Address:", StringComparison.OrdinalIgnoreCase))
+            {
+                var address = line.Substring("Customer Address:".Length).Trim();
+                Console.WriteLine($"Returned *** the *** following correct *** address: {address}");
+                return address;
+            }
+        }
+        Console.WriteLine($"Returned *** a blank*** address *** string empty ");
+        return string.Empty;
+    }
+
+    private string GetGoogleMapsUrl() =>
+        string.IsNullOrEmpty(_address)
+        ? string.Empty
+        : $"https://www.google.com/maps/search/?api=1&query={Uri.EscapeDataString(_address)}";
+
+
+    private string GetCellValue(string label)
+    {
+        var col = Columns.FirstOrDefault(c => c.Label.Equals(label, StringComparison.OrdinalIgnoreCase));
+        if (col != null)
+        {
+            var cell = Row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+            if (cell != null)
+            {
+                return cell.Value ?? "";
+            }
+        }
+        return "";
+    }
+
+    private int GetFileCount()
+    {
+        var col = Columns.FirstOrDefault(c => c.Label == "Images");
+        if (col != null)
+        {
+            var cell = Row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+            if (cell != null)
+            {
+                var count = cell.Files.Count;
+                return count;
+            }
+        }
+        return 0;
+    }
+
+    private string GetNotePreview()
+    {
+        var col = Columns.FirstOrDefault(c => c.Label.Contains("Note", StringComparison.OrdinalIgnoreCase));
+        if (col != null)
+        {
+            var cell = Row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+            if (cell != null)
+            {
+                var val = cell.Value ?? "";
+                if (val.Length > 20)
+                    return val.Substring(0, 20) + "...";
+                return val;
+            }
+        }
+        return "";
+    }
+
+    private string GetStatusClass()
+    {
+        var status = GetCellValue("Status").ToLower();
+        if (status.Contains("complete")) return "status-completed";
+        if (status.Contains("progress")) return "status-inprogress";
+        return "status-other";
+    }
+
+    private void SetCellValue(string label, string value)
+    {
+        var col = Columns.FirstOrDefault(c => c.Label.Equals(label, StringComparison.OrdinalIgnoreCase));
+        if (col is null) return;
+
+        var cell = Row?.Cells?.FirstOrDefault(c => c.ColumnId == col.Id);
+        if (cell is null) return;
+        cell.Value = value;
+        StateHasChanged();
+    }
+
+    private async Task HandleMarkInProgress()
+    {
+        SetCellValue("Status", "In Progress");
+        if (OnMarkInProgress.HasDelegate)
+            await OnMarkInProgress.InvokeAsync();
+
+        
+    }
+    
+    private async Task HandleMarkComplete()
+    {
+        SetCellValue("Status", "Salvage Done");
+        if (OnMarkComplete.HasDelegate)
+            await OnMarkComplete.InvokeAsync();
+    }
+
+
+}

@@ -1,0 +1,1521 @@
+@page "/salvage-tracker-tuesday"
+@using Microsoft.AspNetCore.Authorization
+@using TowBoatSalvageWebApp.Data
+@using TowBoatSalvageWebApp.Models
+@using TowBoatSalvageWebApp.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject SalvageTableService TableService
+@inject IJSRuntime JS
+@inject IWebHostEnvironment Env
+@inject ToastService ToastService
+
+@implements IAsyncDisposable
+
+@attribute [Authorize]
+
+<link href="~/salvage-tracker-monday.css" rel="stylesheet" />
+
+<PageTitle>Salvage Tracker</PageTitle>
+
+<AuthorizeView>
+    <TowBoatSalvageWebApp.Components.Pages.NavBar.NavigationBar />
+    <div class="monday-board@(isLongTextModalOpen ? " monday-modal-open" : "")">
+        <header class="monday-header">
+            <div class="monday-title-row">
+                <div class="monday-title-left">
+                    <h1>Salvage Tracker</h1>
+                    <span class="monday-title-caret">?</span>
+                </div>
+                <div class="monday-title-actions">
+                    <button class="monday-icon-btn" type="button">?</button>
+                </div>
+            </div>
+            <div class="monday-tabs">
+                <button class="monday-tab active" type="button">Main table</button>
+                <button class="monday-tab" type="button">Cards</button>
+                <button class="monday-tab add" type="button">+</button>
+            </div>
+            <div class="monday-toolbar">
+                <button class="monday-primary" @onclick="AddRow" disabled="@(!Columns.Any())">
+                    New g# or company
+                </button>
+                <div class="monday-toolbar-items">
+                    <button class="monday-toolbar-btn" type="button">Search</button>
+                    <button class="monday-toolbar-btn" type="button">Person</button>
+                    <button class="monday-toolbar-btn" type="button">Filter</button>
+                    <button class="monday-toolbar-btn" type="button">Sort</button>
+                    <button class="monday-toolbar-btn" type="button">Hide</button>
+                    <button class="monday-toolbar-btn" type="button">Group by</button>
+                </div>
+            </div>
+        </header>
+
+        <section class="monday-group">
+            <div class="monday-group-header monday-group-active">
+                <span class="monday-group-chevron">?</span>
+                <span class="monday-group-title">To-Do</span>
+                <span class="monday-group-count">@ActiveRows.Count</span>
+            </div>
+            <div class="monday-table-wrapper">
+                <table class="monday-table">
+                    <thead>
+                        <tr>
+                            <th class="monday-sticky monday-control-col"></th>
+                            @foreach (var col in Columns)
+                            {
+                                <th>
+                                    <div class="monday-col-header">
+                                        <span>@col.Label</span>
+                                        <button class="monday-col-menu" @onclick="e => ShowColumnMenu(col.Id, e)" @ref="@columnMenuButtonRefs[col.Id]" @onclick:stopPropagation aria-label="Column menu">
+                                            ...
+                                        </button>
+                                    </div>
+                                </th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <div class="monday-card-list">
+                            @if (!ActiveRows.Any())
+                            {
+                                <p class="monday-empty">No dispatches available for display</p>
+                            }
+                            @{
+                                var fileUploadColumn = Columns.FirstOrDefault(c => c.Label == "Images");
+                            }
+                            @foreach (var row in ActiveRows)
+                            {
+                                <SalvageCard Row="row" Columns="Columns"
+                                             OnEdit="() => EditRow(row)"
+                                             OnMarkInProgress="() => MarkRowInProgress(row)"
+                                             OnMarkComplete="() => MarkRowComplete(row)"
+                                             OnOpenNotes="() => OpenNotesFromCard(row)"
+                                             OnOpenPhotos="() => OpenPhotosFromCard(row)"
+                                             OnUploadPhoto="e => UploadMultipleFiles(e,row.Id, fileUploadColumn!.Id)" />
+                            }
+                        </div>
+                        @foreach (var row in ActiveRows)
+                        {
+                            <tr class="monday-row" @key="row.Id" @onmouseover="@(() => hoverRow = row.Id)" @onmouseout="@(() => hoverRow = null)">
+                                <td class="monday-sticky monday-control-col">
+                                    <div class="monday-row-controls">
+                                        <input type="checkbox" class="monday-checkbox" />
+                                        <button class="monday-row-menu" @onclick="(e => ShowRowMenu(row.Id, e))" @onclick:stopPropagation aria-label="Row menu">
+                                            ...
+                                        </button>
+                                    </div>
+                                    @if (activeRowMenuId == row.Id)
+                                    {
+                                        <div id="row-menu-@row.Id" class="monday-row-menu-dropdown">
+                                            <button class="dropdown-item" @onclick="() => OpenQuickEntryModal(row.Id)">Quick Entry</button>
+                                            <button class="dropdown-item text-danger" @onclick="() => DeleteRow(row.Id)">Delete Row</button>
+                                        </div>
+                                    }
+                                </td>
+                                @foreach (var col in Columns)
+                                {
+                                    if (col.Label == "G# OR Company")
+                                    {
+                                        <td class="monday-cell monday-main-col">
+                                            <span class="input-tooltip-container">
+                                                @RenderCell(row, col)
+                                                @{
+                                                    var cell = row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+                                                    var value = cell?.Value ?? "";
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(value) && value.Length > 15)
+                                                {
+                                                    <span class="input-tooltip">
+                                                        <span>@value</span>
+                                                    </span>
+                                                }
+                                            </span>
+                                        </td>
+                                    }
+                                    else if (col.Type == "FileUpload")
+                                    {
+                                        <td class="monday-cell monday-file-col">
+                                            <span class="monday-file-list">
+                                                @{
+                                                    var cell = row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+                                                    var files = cell?.Files?.ToList() ?? new List<SalvageFile>();
+                                                }
+                                                @if (files.Count > 0)
+                                                {
+                                                    var toShow = files.Count > 4 ? files.Take(4) : files;
+                                                    foreach (var file in toShow)
+                                                    {
+                                                        <span class="monday-thumb" @onclick="() => OpenGallery(files, file.FileName)">
+                                                            <img src="@($"/salvage_uploads/{file.FileName}")" alt="file thumbnail" />
+                                                        </span>
+                                                    }
+                                                    if (files.Count > 4)
+                                                    {
+                                                        <span class="monday-more" @onclick="() => OpenGallery(files, files.First().FileName)">+@(files.Count - 4)</span>
+                                                    }
+                                                }
+                                                <label class="monday-upload" @onclick:stopPropagation>
+                                                    +
+                                                    <InputFile OnChange="async e => UploadMultipleFiles(e, row.Id, col.Id)" multiple style="display:none" @onclick:stopPropagation />
+                                                </label>
+                                            </span>
+                                        </td>
+                                    }
+                                    else if (col.Type == "DocumentUpload")
+                                    {
+                                        <td class="monday-cell monday-doc-col">
+                                            <div class="monday-doc-list">
+                                                @{
+                                                    var cell = row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+                                                    var files = cell?.Files?.ToList() ?? new List<SalvageFile>();
+
+                                                    var docsToShow = files.Take(2).ToList();
+                                                    var docOverflow = files.Count - docsToShow.Count;
+                                                }
+                                                @foreach (var file in docsToShow)
+                                                {
+                                                    var baseUrl = "https://towboatustb.com";
+                                                    var fileUrl = $"{baseUrl}/salvage_uploads/{file.FileName}";
+                                                    var officeViewerUrl = $"https://view.officeapps.live.com/op/view.aspx?src={Uri.EscapeDataString(fileUrl)}";
+
+                                                    <span class="monday-doc">
+                                                        @if (file.FileType == "application/pdf")
+                                                        {
+                                                            <a href="@($"/salvage_uploads/{file.FileName}")" target="_blank">
+                                                                <i class="fade fa-file-pdf-o"></i>
+                                                                <span class="monday-doc-name" title="@file.OriginalName">@file.OriginalName</span>
+                                                            </a>
+                                                        }
+                                                        else if (file.FileType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                                                        file.FileType == "application/msword" ||
+                                                        file.FileType == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+                                                        file.FileType == "application/vnd.openxmlformats-officedocument.presentationml.presentation" ||
+                                                        file.FileType == "application/vnd.ms-excel")
+                                                        {
+                                                            <a href="@officeViewerUrl" target="_blank" rel="noopener">
+                                                                <i class="fa fa-file-word-o"></i>
+                                                                <span class="monday-doc-name" title="@file.OriginalName">@file.OriginalName</span>
+                                                            </a>
+                                                        }
+                                                        else
+                                                        {
+                                                            <a href="@($"/salvage_uploads/{file.FileName}")" target="_blank">
+                                                                <i class="fa fa-file-o"></i>
+                                                                <span class="monday-doc-name" title="@file.OriginalName">@file.OriginalName</span>
+                                                            </a>
+                                                        }
+                                                        <button class="monday-doc-delete" title="Delete" @onclick="() => DeleteFileAsync(file.Id)">
+                                                            <i class="fa fa-trash"></i>
+                                                        </button>
+                                                    </span>
+                                                }
+                                                @if (docOverflow > 0)
+                                                {
+                                                    <span class="monday-more" @onclick="() => OpenDocGallery(files)">+@docOverflow more</span>
+                                                }
+                                                <label class="monday-upload" @onclick:stopPropagation>
+                                                    +
+                                                    <InputFile OnChange="e => UploadDocumentFiles(e, row.Id, col.Id)" multiple style="display:none" @onclick:stopPropagation />
+                                                </label>
+                                            </div>
+                                        </td>
+                                    }
+                                    else if (col.Type == "LongText")
+                                    {
+                                        var cell = row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+                                        var value = cell?.Value ?? "";
+
+                                        <td class="monday-cell">
+                                            <span class="input-tooltip-container">
+                                                <input class="form-control" readonly value="@value" @onclick="() => OpenLongTextModal(row, col)" />
+                                                @if (!string.IsNullOrWhiteSpace(value) && value.Length > 15)
+                                                {
+                                                    <span class="input-tooltip">
+                                                        <div class="tooltip-content">@value</div>
+                                                    </span>
+                                                }
+                                            </span>
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td class="monday-cell">
+                                            <span class="input-tooltip-container">
+                                                @RenderCell(row, col)
+                                                @{
+                                                    var cell = row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+                                                    var value = cell?.Value ?? "";
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(value) && value.Length > 15)
+                                                {
+                                                    <span class="input-tooltip">
+                                                        <span>@value</span>
+                                                    </span>
+                                                }
+                                            </span>
+                                        </td>
+                                    }
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="monday-group">
+            <div class="monday-group-header monday-group-complete">
+                <span class="monday-group-chevron">?</span>
+                <span class="monday-group-title">Completed</span>
+                <span class="monday-group-count">@FilteredCompletedRows.Count</span>
+                <div class="monday-group-controls">
+                    <label>
+                        Show:
+                        <select @oninput="OnCompletedFilterChnaged" value="@completedFilter" class="form-select form-select-sm">
+                            <option value="all">All</option>
+                            <option value="30days">Last 30 Days</option>
+                            <option value="60days">Last 60 Days</option>
+                            <option value="90days">Last 90 Days</option>
+                            <option value="thisYear">This Year</option>
+                            <option value="lastYear">Last Year</option>
+                        </select>
+                    </label>
+                    <input class="form-control form-control-sm" placeholder="Search dispatch..." @oninput="OnSearchChanged" value="@completedSearch" />
+                </div>
+            </div>
+            <div class="monday-table-wrapper">
+                <table class="monday-table">
+                    <thead>
+                        <tr>
+                            <th class="monday-sticky monday-control-col"></th>
+                            @foreach (var col in Columns)
+                            {
+                                <th>
+                                    <div class="monday-col-header">
+                                        <span>@col.Label</span>
+                                    </div>
+                                </th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in FilteredCompletedRows)
+                        {
+                            <tr class="monday-row" @key="row.Id" @onmouseover="@(() => hoverRow = row.Id)" @onmouseout="@(() => hoverRow = null)">
+                                <td class="monday-sticky monday-control-col">
+                                    <div class="monday-row-controls">
+                                        <input type="checkbox" class="monday-checkbox" />
+                                        <button class="monday-row-menu" @onclick="(e => ShowRowMenu(row.Id, e))" @onclick:stopPropagation aria-label="Row menu">
+                                            ...
+                                        </button>
+                                    </div>
+                                    @if (activeRowMenuId == row.Id)
+                                    {
+                                        <div id="row-menu-@row.Id" class="monday-row-menu-dropdown">
+                                            <button class="dropdown-item" @onclick="() => OpenQuickEntryModal(row.Id)">Quick Entry</button>
+                                            <button class="dropdown-item text-danger" @onclick="() => DeleteRow(row.Id)">Delete Row</button>
+                                        </div>
+                                    }
+                                </td>
+                                @foreach (var col in Columns)
+                                {
+                                    if (col.Label == "G# OR Company")
+                                    {
+                                        <td class="monday-cell monday-main-col">
+                                            <span class="input-tooltip-container">
+                                                @RenderCell(row, col)
+                                                @{
+                                                    var cell = row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+                                                    var value = cell?.Value ?? "";
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(value) && value.Length > 15)
+                                                {
+                                                    <span class="input-tooltip">
+                                                        <span>@value</span>
+                                                    </span>
+                                                }
+                                            </span>
+                                        </td>
+                                    }
+                                    else if (col.Type == "FileUpload")
+                                    {
+                                        <td class="monday-cell monday-file-col">
+                                            <span class="monday-file-list">
+                                                @{
+                                                    var cell = row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+                                                    var files = cell?.Files?.ToList() ?? new List<SalvageFile>();
+                                                }
+                                                @if (files.Count > 0)
+                                                {
+                                                    var toShow = files.Count > 3 ? files.Take(3) : files;
+                                                    foreach (var file in toShow)
+                                                    {
+                                                        <span class="monday-thumb" @onclick="() => OpenGallery(files, file.FileName)">
+                                                            <img src="@($"/salvage_uploads/{file.FileName}")" alt="file thumbnail" />
+                                                        </span>
+                                                    }
+                                                    if (files.Count > 3)
+                                                    {
+                                                        <span class="monday-more" @onclick="() => OpenGallery(files, files.First().FileName)">+@(files.Count - 3)</span>
+                                                    }
+                                                }
+                                                <label class="monday-upload" @onclick:stopPropagation>
+                                                    +
+                                                    <InputFile OnChange="async e => UploadMultipleFiles(e, row.Id, col.Id)" multiple style="display:none" @onclick:stopPropagation />
+                                                </label>
+                                            </span>
+                                        </td>
+                                    }
+                                    else if (col.Type == "DocumentUpload")
+                                    {
+                                        <td class="monday-cell monday-doc-col">
+                                            <div class="monday-doc-list">
+                                                @{
+                                                    var cell = row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+                                                    var files = cell?.Files?.ToList() ?? new List<SalvageFile>();
+
+                                                    var docsToShow = files.Take(2).ToList();
+                                                    var docOverflow = files.Count - docsToShow.Count;
+                                                }
+                                                @foreach (var file in docsToShow)
+                                                {
+                                                    var baseUrl = "https://towboatustb.com";
+                                                    var fileUrl = $"{baseUrl}/salvage_uploads/{file.FileName}";
+                                                    var officeViewerUrl = $"https://view.officeapps.live.com/op/view.aspx?src={Uri.EscapeDataString(fileUrl)}";
+
+                                                    <span class="monday-doc">
+                                                        @if (file.FileType == "application/pdf")
+                                                        {
+                                                            <a href="@($"/salvage_uploads/{file.FileName}")" target="_blank">
+                                                                <i class="fade fa-file-pdf-o"></i>
+                                                                <span class="monday-doc-name" title="@file.OriginalName">@file.OriginalName</span>
+                                                            </a>
+                                                        }
+                                                        else if (file.FileType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                                                        file.FileType == "application/msword" ||
+                                                        file.FileType == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+                                                        file.FileType == "application/vnd.openxmlformats-officedocument.presentationml.presentation" ||
+                                                        file.FileType == "application/vnd.ms-excel")
+                                                        {
+                                                            <a href="@officeViewerUrl" target="_blank" rel="noopener">
+                                                                <i class="fa fa-file-word-o"></i>
+                                                                <span class="monday-doc-name" title="@file.OriginalName">@file.OriginalName</span>
+                                                            </a>
+                                                        }
+                                                        else
+                                                        {
+                                                            <a href="@($"/salvage_uploads/{file.FileName}")" target="_blank">
+                                                                <i class="fa fa-file-o"></i>
+                                                                <span class="monday-doc-name" title="@file.OriginalName">@file.OriginalName</span>
+                                                            </a>
+                                                        }
+                                                        <button class="monday-doc-delete" title="Delete" @onclick="() => DeleteFileAsync(file.Id)">
+                                                            <i class="fa fa-trash"></i>
+                                                        </button>
+                                                    </span>
+                                                }
+                                                @if (docOverflow > 0)
+                                                {
+                                                    <span class="monday-more" @onclick="() => OpenDocGallery(files)">+@docOverflow more</span>
+                                                }
+                                                <label class="monday-upload" @onclick:stopPropagation>
+                                                    +
+                                                    <InputFile OnChange="e => UploadDocumentFiles(e, row.Id, col.Id)" multiple style="display:none" @onclick:stopPropagation />
+                                                </label>
+                                            </div>
+                                        </td>
+                                    }
+                                    else if (col.Type == "LongText")
+                                    {
+                                        var cell = row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+                                        var value = cell?.Value ?? "";
+
+                                        <td class="monday-cell">
+                                            <span class="input-tooltip-container">
+                                                <input class="form-control" readonly value="@value" @onclick="() => OpenLongTextModal(row, col)" />
+                                                @if (!string.IsNullOrWhiteSpace(value) && value.Length > 15)
+                                                {
+                                                    <span class="input-tooltip">
+                                                        <div class="tooltip-content">@value</div>
+                                                    </span>
+                                                }
+                                            </span>
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td class="monday-cell">
+                                            <span class="input-tooltip-container">
+                                                @RenderCell(row, col)
+                                                @{
+                                                    var cell = row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+                                                    var value = cell?.Value ?? "";
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(value) && value.Length > 15)
+                                                {
+                                                    <span class="input-tooltip">
+                                                        <span>@value</span>
+                                                    </span>
+                                                }
+                                            </span>
+                                        </td>
+                                    }
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="monday-add-group">
+            <button class="monday-add-group-btn" type="button">+ Add new group</button>
+        </div>
+    </div>
+
+    @if (isGalleryOpen)
+    {
+        <div class="gallery-modal">
+            <div class="main-image">
+                <img src="@($"/salvage_uploads/{selectedImage}")" />
+            </div>
+            <div class="sidebar-thumbs">
+                @foreach (var img in currentGallery)
+                {
+                    <div class="gallery-thumb-container">
+                        <img src="@($"/salvage_uploads/{img.FileName}")" class="thumb" @onclick="() => selectedImage = img.FileName" />
+                        <button class="delete-gallery-thumb" title="Delete" @onclick="async () => await DeleteFileAsync(img.Id)" @onclick:stopPropagation>
+                            ?
+                        </button>
+                    </div>
+                }
+            </div>
+            <button class="close-btn" @onclick="() => isGalleryOpen = false">×</button>
+        </div>
+    }
+
+    @if (isLongTextModalOpen)
+    {
+        <div class="longtext-modal-backdrop"></div>
+        <div class="longtext-modal">
+            <div class="longtext-modal-dialog">
+                <div class="longtext-modal-content">
+                    <div class="longtext-modal-header">
+                        <h5 class="modal-title">Edit Text</h5>
+                        <button type="button" class="close-btn" @onclick="CloseLongTextModal">x</button>
+                    </div>
+                    <div class="longtext-modal-body">
+                        <textarea class="form-control" style="min-height:400px; width:100%;font-size:1.1rem" @bind="editingLongText"></textarea>
+                    </div>
+                    <div class="longtext-modal-footer">
+                        <button class="btn btn-secondary" @onclick="CloseLongTextModal">Cancel</button>
+                        <button class="btn btn-primary" @onclick="SaveLongTextModal">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (isQuickEntryModalOpen)
+    {
+        <div class="longtext-modal-backdrop"></div>
+        <div class="longtext-modal">
+            <div class="longtext-modal-dialog">
+                <div class="longtext-modal-content">
+                    <div class="longtext-modal-header">
+                        <h5 class="modal-title">Quick Entry</h5>
+                        <button type="button" class="close-btn" @onclick="CloseQuickEntryModal">x</button>
+                    </div>
+                    <div class="longtext-modal-body">
+                        <textarea class="form-control" style="min-height: 225px; width:100%;font-size:1.05rem" @bind="quickEntryInput"></textarea>
+                        <div class="mt-3">
+                            <button class="btn btn-secondary" @onclick="ParseQuickEntry">Parse</button>
+                        </div>
+                        @if (quickEntry != null)
+                        {
+                            <div class="mt-4 p-3 border rounded" style="background:#f6f7fb">
+                                <b>Preview Parsed Fields:</b>
+                                <div>Date: <span>@quickEntry.Date</span></div>
+                                <div>Dispatch #: <span>@quickEntry.DispatchNumber</span></div>
+                                <div>Claim #: <span>@quickEntry.IncidentNumber</span></div>
+                                <div>Make: <span>@quickEntry.Make</span></div>
+                                <div>Model: <span>@quickEntry.Model</span></div>
+                                <div>Length: <span>@quickEntry.Length</span></div>
+                                <div>Member: <span>@quickEntry.CustomerNumber</span></div>
+                                <div>Customer Name: <span>@quickEntry.CustomerName</span></div>
+                                <div>Phone #: <span>@quickEntry.PhoneNumber</span></div>
+                            </div>
+                            <button class="btn btn-success mt-3" @onclick="ApplyQuickEntryToRow">Apply Parsed Data</button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (activeMenuColumnId != null && portalMenuPosition != null)
+    {
+        var col = Columns.FirstOrDefault(c => c.Id == activeMenuColumnId);
+        if (col != null)
+        {
+            <div id="menu-@col.Id" class="column-menu" style="position:fixed; left:@portalMenuPosition.LeftPx; top:@portalMenuPosition.TopPx; z-index:99999;">
+                <button class="dropdown-item" @onclick="() => StartRenameColumn(col.Id)">Rename</button>
+                <button class="dropdown-item text-danger" @onclick="() => DeleteColumn(col.Id)">Delete</button>
+            </div>
+        }
+    }
+
+    @if (isDocGalleryOpen)
+    {
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal d-block" tabindex="-1" style="z-index: 1200;">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Documents</h5>
+                        <button type="button" class="btn-close" @onclick="CloseDocGallery"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (docGalleryFiles.Count == 0)
+                        {
+                            <p>No documents.</p>
+                        }
+                        else
+                        {
+                            <ul style="list-style-type:none; padding:0;">
+                                @foreach (var file in docGalleryFiles)
+                                {
+                                    var baseUrl = "https://localhost:5010";
+                                    var fileUrl = $"{baseUrl}/salvage_uploads/{file.FileName}";
+                                    var officeViewerUrl = $"https://view.officeapps.live.com/op/view.aspx?src={Uri.EscapeDataString(fileUrl)}";
+
+                                    <li style="margin-bottom:12px; display:flex; align-items: center;">
+                                        @if (file.FileType == "application/pdf")
+                                        {
+                                            <a href="@($"/salvage_uploads/{file.FileName}")" target="_blank">
+                                                <i class="fade fa-file-pdf-o"></i>
+                                                @file.OriginalName
+                                            </a>
+                                        }
+                                        else if (file.FileType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                                        file.FileType == "application/msword" ||
+                                        file.FileType == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+                                        file.FileType == "application/vnd.openxmlformats-officedocument.presentationml.presentation" ||
+                                        file.FileType == "application/vnd.ms-excel")
+                                        {
+                                            <a href="@officeViewerUrl" target="_blank" rel="noopener">
+                                                <i class="fa fa-file-word-o"></i>
+                                                @file.OriginalName
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <a href="@($"/salvage_uploads/{file.FileName}")" target="_blank">
+                                                <i class="fa fa-file-o"></i>
+                                                <span class="doc-filename" title="@file.OriginalName">@file.OriginalName</span>
+                                            </a>
+                                        }
+                                        <button class="delete-doc-btn" title="Delete" @onclick="() => DeleteFileAsync(file.Id)">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @onclick="CloseDocGallery">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (isAddColumnModalOpen)
+    {
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal d-block" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add New Column</h5>
+                        <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label>Column Label</label>
+                        <input class="form-control" @bind="newColumnLabel" />
+
+                        <label class="mt-3">Column Type</label>
+                        <select class="form-select" @bind="newColumnType">
+                            <option value="Text">Text</option>
+                            <option value="LongText">Long Text</option>
+                            <option value="Status">Status</option>
+                            <option value="Dropdown">Dropdown</option>
+                            <option value="Date">Date</option>
+                            <option value="Number">Number</option>
+                            <option value="FileUpload">File Upload</option>
+                            <option value="DocumentUpload">Document Upload</option>
+                            <option value="Port">Port</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                        <button class="btn btn-primary" @onclick="AddColumn">Add Column</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (isRenaming)
+    {
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal d-block" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Rename Column</h5>
+                    </div>
+                    <div class="modal-body">
+                        <input class="form-control" @bind="renameText" />
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @onclick="() => isRenaming = false">Cancel</button>
+                        <button class="btn btn-primary" @onclick="RenameColumn">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</AuthorizeView>
+
+@code {
+    private bool isAddColumnModalOpen = false;
+    private string newColumnLabel = string.Empty;
+    private string newColumnType = "Text";
+    private int? activeRowMenuId = null;
+    private bool isRenaming = false;
+    private string renameText = "";
+    private int? editingColumndId = null;
+    private DotNetObjectReference<SalvageBoardMonday>? dotNetHelper;
+    private bool isGalleryOpen = false;
+    private string selectedImage = string.Empty;
+    private List<SalvageFile> currentGallery = new();
+    private int? hoverRow;
+    private string? ErrorMessage;
+    private SalvageRow currentHoverRow;
+    private SalvageColumn currentUploadColumn;
+    private List<SalvageColumn> Columns;
+    private List<SalvageRow> Rows;
+    private bool isLongTextModalOpen = false;
+    private string editingLongText = "";
+    private SalvageRow? editingLongTextRow;
+    private SalvageColumn? editingLongTextCol;
+    private bool isQuickEntryModalOpen = false;
+    private int quickEntryRowId;
+    private string quickEntryInput = "";
+    private QuickEntry? quickEntry;
+    private string? errors;
+    private string StatusColor = "red";
+
+    private string? currentUrl;
+
+    private int _selectedYear = DateTime.Now.Year;
+    private int? _selectedMonth = null;
+    private List<int> AvailableYears = new();
+    private int DispatchCount;
+    private decimal IncomeTotal;
+    private string MonthName(int month) => new DateTime(2000, month, 1).ToString("MMMM");
+
+    private int? activeMenuColumnId = null;
+    private PortalMenuPosition? portalMenuPosition = null;
+    private DotNetObjectReference<SalvageBoardMonday>? _menuRef;
+
+    private bool isDocGalleryOpen = false;
+    private List<SalvageFile> docGalleryFiles = new();
+    private string docGalleryTitle = "";
+
+    private string menuClass = "";
+    private string iconClass = "";
+
+    private string completedFilter = "90days";
+    private string completedSearch = "";
+    private List<SalvageRow> FilteredCompletedRows = new();
+
+    private SalvageColumn? CompletedDateCol => Columns.FirstOrDefault(c => c.Type == "Date" && c.Label.Trim().Equals("Completed Date", StringComparison.OrdinalIgnoreCase));
+
+    private SalvageColumn? StatusCol => Columns.FirstOrDefault(c =>
+    c.Type == "Status" && c.Label.Contains("Status", StringComparison.OrdinalIgnoreCase));
+
+    private async Task OnSearchChanged(ChangeEventArgs e)
+    {
+        completedSearch = e.Value?.ToString() ?? "";
+        FilteredCompletedRows = (await GetFilteredCompletedRowsAsync()).ToList();
+        StateHasChanged();
+    }
+
+    private async Task OnCompletedFilterChnaged(ChangeEventArgs e)
+    {
+        completedFilter = e.Value?.ToString() ?? "all";
+        FilteredCompletedRows = (await GetFilteredCompletedRowsAsync()).ToList();
+        StateHasChanged();
+    }
+
+    private async Task<IEnumerable<SalvageRow>> GetFilteredCompletedRowsAsync()
+    {
+        var now = DateTime.Now;
+
+        IEnumerable<SalvageRow> rows = Rows.Where(r =>
+        {
+            var statusCell = r.Cells.FirstOrDefault(cell => cell.ColumnId == StatusCol?.Id);
+            return statusCell != null && statusCell.Value == "Completed";
+        });
+
+        if (CompletedDateCol != null && completedFilter != "all")
+        {
+            Func<DateTime, bool> dateFilter = _ => true;
+            switch (completedFilter)
+            {
+                case "30days":
+                    dateFilter = d => d >= now.AddDays(-30);
+                    break;
+                case "60days":
+                    dateFilter = d => d >= now.AddDays(-60);
+                    break;
+                case "90days":
+                    dateFilter = d => d >= now.AddDays(-90);
+                    break;
+                case "thisYear":
+                    dateFilter = d => d.Year >= now.Year;
+                    break;
+                case "lastYear":
+                    dateFilter = d => d.Year >= now.Year - 1;
+                    break;
+            }
+
+            rows = rows.Where(r =>
+            {
+                var dateCell = r.Cells.FirstOrDefault(cell => cell.ColumnId == CompletedDateCol.Id);
+                return dateCell != null &&
+                        DateTime.TryParse(dateCell.Value, out var dateVal) &&
+                        dateFilter(dateVal);
+            });
+        }
+
+        if (!string.IsNullOrWhiteSpace(completedSearch))
+        {
+            var search = completedSearch.Trim().ToLowerInvariant();
+            rows = rows.Where(r =>
+                r.Cells.Any(cell => !string.IsNullOrWhiteSpace(cell.Value) && cell.Value.ToLower().Contains(search)));
+        }
+
+        if (CompletedDateCol != null)
+        {
+            rows = rows.OrderByDescending(r =>
+            {
+                var datecell = r.Cells.FirstOrDefault(cell => cell.ColumnId == CompletedDateCol.Id);
+                if (datecell != null && DateTime.TryParse(datecell.Value, out var dateVal))
+                    return dateVal;
+                return DateTime.MinValue;
+            });
+        }
+
+        return rows;
+    }
+
+    private void OpenDocGallery(List<SalvageFile> files)
+    {
+        docGalleryFiles = files;
+        isDocGalleryOpen = true;
+    }
+
+    private void CloseDocGallery()
+    {
+        isDocGalleryOpen = false;
+        docGalleryFiles = new();
+    }
+
+    public class PortalMenuPosition
+    {
+        public string LeftPx { get; set; } = "0px";
+        public string TopPx { get; set; } = "0px";
+    }
+
+    private Dictionary<int, ElementReference> columnMenuButtonRefs = new();
+
+    private ElementReference GetColumnMenuButtonRef(int colId)
+    {
+        if (!columnMenuButtonRefs.ContainsKey(colId))
+            columnMenuButtonRefs[colId] = default;
+        return columnMenuButtonRefs[colId];
+    }
+
+    public class DomRect
+    {
+        public double Left { get; set; }
+        public double Top { get; set; }
+        public double Bottom { get; set; }
+        public double Right { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+    }
+
+    private int selectedYear
+    {
+        get => _selectedYear;
+        set
+        {
+            if (_selectedYear != value)
+            {
+                _selectedYear = value;
+                _ = LoadDashboardStatsAsync();
+            }
+        }
+    }
+
+    private int? selectedMonth
+    {
+        get => _selectedMonth;
+        set
+        {
+            if (_selectedMonth != value)
+            {
+                _selectedMonth = value;
+                _ = LoadDashboardStatsAsync();
+            }
+        }
+    }
+
+    private async Task OnStatusChanged(SalvageRow row, SalvageColumn statusCol, string newStatus)
+    {
+        await TableService.UpdateCellValueAsync(row.Id, statusCol.Id, newStatus);
+
+        if (newStatus == "Completed")
+        {
+            var completedDateCol = Columns.FirstOrDefault(c =>
+                c.Type == "Date" &&
+                c.Label.Trim().Equals("Completed Date", StringComparison.OrdinalIgnoreCase));
+
+            if (completedDateCol != null)
+            {
+                await TableService.UpdateCellValueAsync(row.Id, completedDateCol.Id, DateTime.Now.ToString("yyyy-MM-dd"));
+                _ = ToastService.ShowToast($"Dispatch moved to completed.", "success");
+            }
+        }
+        await LoadBoardAsync();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBoardAsync();
+        dotNetHelper = DotNetObjectReference.Create(this);
+
+        int minYear = 2020;
+        int maxYear = DateTime.Now.Year;
+        AvailableYears = Enumerable.Range(minYear, maxYear - minYear + 1).ToList();
+        selectedYear = maxYear;
+        selectedMonth = null;
+        await LoadDashboardStatsAsync();
+
+        foreach (var col in Columns)
+        {
+            if (!columnMenuButtonRefs.ContainsKey(col.Id))
+            {
+                columnMenuButtonRefs[col.Id] = default;
+            }
+        }
+
+        FilteredCompletedRows = (await GetFilteredCompletedRowsAsync()).ToList();
+    }
+
+    private async Task LoadBoardAsync()
+    {
+        Columns = await TableService.GetColumnAsync();
+        Rows = await TableService.GetRowsWithCellAsync();
+
+        FilteredCompletedRows = (await GetFilteredCompletedRowsAsync()).ToList();
+    }
+
+    private async Task LoadDashboardStatsAsync()
+    {
+        var rows = await TableService.GetRowsWithCellAsync();
+
+        var filtered = rows.Where(r =>
+        {
+            var dateCell = r.Cells.FirstOrDefault(c => c.Column.Label.Contains("Date", StringComparison.OrdinalIgnoreCase));
+            if (dateCell == null || !DateTime.TryParse(dateCell.Value, out var date))
+                return false;
+            if (date.Year != selectedYear) return false;
+            if (selectedMonth.HasValue && date.Month != selectedMonth.Value) return false;
+            return true;
+        }).ToList();
+
+        DispatchCount = filtered.Count;
+
+        IncomeTotal = filtered
+            .Select(r =>
+            {
+                var incomeCell = r.Cells.FirstOrDefault(c => c.Column.Label.Contains("Invoice", StringComparison.OrdinalIgnoreCase));
+                if (incomeCell != null && decimal.TryParse(incomeCell.Value, out var val))
+                    return val;
+                return 0m;
+            }).Sum();
+    }
+
+    private async Task OnFilterChanged(ChangeEventArgs e)
+    {
+        await LoadDashboardStatsAsync();
+    }
+
+    private async Task ShowColumnMenu(int colId, MouseEventArgs e)
+    {
+        activeMenuColumnId = colId;
+
+        var elemRef = GetColumnMenuButtonRef(colId);
+        var rect = await JS.InvokeAsync<DomRect>("getBoundingClientRect", elemRef);
+        portalMenuPosition = new PortalMenuPosition
+        {
+            LeftPx = $"{rect.Left}px",
+            TopPx = $"{rect.Bottom + 4}px"
+        };
+
+        await JS.InvokeVoidAsync("registerClickOutside", dotNetHelper, $"menu-{colId}");
+
+        _menuRef = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("registerMenuReposition", _menuRef, elemRef);
+
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void UpdateMenuPosition(PositionUpdate pos)
+    {
+        if (portalMenuPosition != null)
+        {
+            portalMenuPosition.LeftPx = $"{pos.left}px";
+            portalMenuPosition.TopPx = $"{pos.top + 6}px";
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public class PositionUpdate
+    {
+        public double left { get; set; }
+        public double top { get; set; }
+    }
+
+    private async Task ShowRowMenu(int rowId, MouseEventArgs e)
+    {
+        activeRowMenuId = rowId;
+
+        await JS.InvokeVoidAsync("registerClickOutsideRow", dotNetHelper, $"row-menu-{rowId}");
+
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task CloseColumnMenu()
+    {
+        activeMenuColumnId = null;
+        await JS.InvokeVoidAsync("unregisterMenuReposition");
+        _menuRef?.Dispose();
+
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void CloseRowMenu()
+    {
+        activeRowMenuId = null;
+        StateHasChanged();
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        dotNetHelper?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+
+    private async Task DeleteRow(int rowId)
+    {
+        await TableService.DeleteRowAsync(rowId);
+        activeRowMenuId = null;
+        await LoadBoardAsync();
+        await LoadDashboardStatsAsync();
+    }
+
+    private void StartRenameColumn(int columnId)
+    {
+        var col = Columns.FirstOrDefault(c => c.Id == columnId);
+        if (col != null)
+        {
+            renameText = col.Label;
+            isRenaming = true;
+            editingColumndId = columnId;
+            activeMenuColumnId = null;
+        }
+    }
+
+    private async Task RenameColumn()
+    {
+        if (editingColumndId != null)
+        {
+            await TableService.RenameColumnAsync(editingColumndId.Value, renameText);
+            await LoadBoardAsync();
+        }
+        isRenaming = false;
+        editingColumndId = null;
+    }
+
+    private async Task AddColumn()
+    {
+        if (!string.IsNullOrWhiteSpace(newColumnLabel))
+        {
+            await TableService.AddColumnAsync(newColumnLabel, newColumnType, Columns.Count);
+            await LoadBoardAsync();
+        }
+        CloseModal();
+    }
+
+    private async Task DeleteColumn(int columnId)
+    {
+        await TableService.DeleteColumnAsync(columnId);
+        await LoadBoardAsync();
+        activeMenuColumnId = null;
+    }
+
+    private void ShowAddColumnModal()
+    {
+        isAddColumnModalOpen = true;
+    }
+
+    private void CloseModal()
+    {
+        newColumnLabel = string.Empty;
+        newColumnType = "Text";
+        isAddColumnModalOpen = false;
+    }
+
+    private async Task AddRow()
+    {
+        if (!Columns.Any())
+        {
+            return;
+        }
+
+        await TableService.AddRowAsync();
+        await LoadBoardAsync();
+    }
+
+    private void OpenLongTextModal(SalvageRow row, SalvageColumn col)
+    {
+        var cell = row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+        editingLongText = cell?.Value ?? "";
+        editingLongTextRow = row;
+        editingLongTextCol = col;
+        isLongTextModalOpen = true;
+    }
+
+    private void CloseLongTextModal()
+    {
+        isLongTextModalOpen = false;
+        editingLongText = "";
+        editingLongTextRow = null;
+        editingLongTextCol = null;
+    }
+
+    private async Task SaveLongTextModal()
+    {
+        if (editingLongText != null && editingLongTextCol != null)
+        {
+            await TableService.UpdateCellValueAsync(editingLongTextRow.Id, editingLongTextCol.Id, editingLongText);
+            await LoadBoardAsync();
+        }
+        CloseLongTextModal();
+    }
+
+    private void OpenQuickEntryModal(int rowId)
+    {
+        isQuickEntryModalOpen = true;
+        quickEntryRowId = rowId;
+        quickEntryInput = "";
+        quickEntry = null;
+
+        activeRowMenuId = null;
+    }
+
+    private void CloseQuickEntryModal()
+    {
+        isQuickEntryModalOpen = false;
+        quickEntryInput = "";
+        quickEntry = null;
+    }
+
+    private void ParseQuickEntry()
+    {
+        quickEntry = new QuickEntry();
+        var lines = quickEntryInput.Split('\n').Select(line => line.Trim()).Where(line => !string.IsNullOrWhiteSpace(line));
+
+        foreach (var line in lines)
+        {
+            if (line.StartsWith("Date:", StringComparison.OrdinalIgnoreCase))
+                quickEntry.Date = line.Substring("Date:".Length).Trim();
+            if (line.StartsWith("Dispatch Number:", StringComparison.OrdinalIgnoreCase))
+                quickEntry.DispatchNumber = line.Substring("Dispatch Number:".Length).Trim();
+            if (line.StartsWith("Incident number:", StringComparison.OrdinalIgnoreCase))
+                quickEntry.IncidentNumber = line.Substring("Incident number:".Length).Trim();
+            if (line.StartsWith("Make:", StringComparison.OrdinalIgnoreCase))
+                quickEntry.Make = line.Substring("Make:".Length).Trim();
+            if (line.StartsWith("Model:", StringComparison.OrdinalIgnoreCase))
+                quickEntry.Model = line.Substring("Model:".Length).Trim();
+            if (line.StartsWith("Length:", StringComparison.OrdinalIgnoreCase))
+                quickEntry.Length = line.Substring("Length:".Length).Trim();
+            if (line.StartsWith("Customer number:", StringComparison.OrdinalIgnoreCase))
+                quickEntry.CustomerNumber = line.Substring("Customer number:".Length).Trim();
+            if (line.StartsWith("Customer Name:", StringComparison.OrdinalIgnoreCase))
+                quickEntry.CustomerName = line.Substring("Customer Name:".Length).Trim();
+            if (line.StartsWith("Best number to contact:", StringComparison.OrdinalIgnoreCase))
+                quickEntry.PhoneNumber = line.Substring("Best number to contact:".Length).Trim();
+        }
+    }
+
+    private async Task ApplyQuickEntryToRow()
+    {
+        var row = Rows.FirstOrDefault(r => r.Id == quickEntryRowId);
+        if (row != null && quickEntry != null)
+        {
+            foreach (var col in Columns)
+            {
+                try
+                {
+                    if (col.Label.Contains("Date", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(quickEntry.Date))
+                    {
+                        await TableService.UpdateCellValueAsync(row.Id, col.Id, quickEntry.Date);
+                    }
+                    if (col.Label.Contains("G# OR Company", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(quickEntry.DispatchNumber))
+                    {
+                        await TableService.UpdateCellValueAsync(row.Id, col.Id, quickEntry.DispatchNumber);
+                    }
+                    if (col.Label.Contains("Claim #", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(quickEntry.IncidentNumber))
+                    {
+                        await TableService.UpdateCellValueAsync(row.Id, col.Id, quickEntry.IncidentNumber);
+                    }
+                    if (col.Label.Contains("Vessel Make", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(quickEntry.Make))
+                    {
+                        await TableService.UpdateCellValueAsync(row.Id, col.Id, quickEntry.Make);
+                    }
+                    if (col.Label.Contains("Model", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(quickEntry.Model))
+                    {
+                        await TableService.UpdateCellValueAsync(row.Id, col.Id, quickEntry.Model);
+                    }
+                    if (col.Label.Contains("Vessel Length", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(quickEntry.Length))
+                    {
+                        await TableService.UpdateCellValueAsync(row.Id, col.Id, quickEntry.Length);
+                    }
+                    if (col.Label.Contains("Member #", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(quickEntry.CustomerNumber))
+                    {
+                        await TableService.UpdateCellValueAsync(row.Id, col.Id, quickEntry.CustomerNumber);
+                    }
+                    if (col.Label.Contains("Name", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(quickEntry.CustomerName))
+                    {
+                        await TableService.UpdateCellValueAsync(row.Id, col.Id, quickEntry.CustomerName);
+                    }
+                    if (col.Label.Contains("Phone Number", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(quickEntry.PhoneNumber))
+                    {
+                        await TableService.UpdateCellValueAsync(row.Id, col.Id, quickEntry.PhoneNumber);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _ = ToastService.ShowToast($"Error from parser: {ex}", "error");
+                }
+                await LoadBoardAsync();
+            }
+            CloseQuickEntryModal();
+            _ = ToastService.ShowToast($"Data added to cells successfully", "success");
+        }
+    }
+
+    private RenderFragment RenderCell(SalvageRow row, SalvageColumn col) => builder =>
+    {
+        var cell = row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+        var value = cell?.Value ?? "";
+
+        var statusOfCell = row.Cells.FirstOrDefault(c => c.Column.Label == "Status");
+        var valueOfStatus = statusOfCell?.Value ?? "red";
+
+        switch (valueOfStatus)
+        {
+            case "Not Assigned":
+                StatusColor = "gold";
+                break;
+
+            case "Assigned":
+                StatusColor = "dodgerblue";
+                break;
+
+            case "In Progress":
+                StatusColor = "lightgreen";
+                break;
+
+            case "Salvage Done":
+                StatusColor = "seagreen";
+                break;
+
+            case "Completed":
+                StatusColor = "purple";
+                break;
+        }
+
+        switch (col.Type)
+        {
+            case "Status":
+                builder.OpenElement(0, "select");
+                builder.AddAttribute(1, "class", "form-select");
+                builder.AddAttribute(2, "value", value);
+                builder.AddAttribute(3, "style", $"background-color:{StatusColor}; color:white;");
+                builder.AddAttribute(4, "onchange", EventCallback.Factory.Create<ChangeEventArgs>(this, async e =>
+                {
+                    var newStatus = e.Value?.ToString() ?? "";
+                    await OnStatusChanged(row, col, newStatus);
+                }));
+
+                void AddOption(string text, string color)
+                {
+                    builder.OpenElement(5, "option");
+                    builder.AddAttribute(6, "value", text);
+                    builder.AddAttribute(7, "style", $"background-color:{color}; color:white;");
+                    builder.AddContent(8, text);
+                    builder.CloseElement();
+                }
+
+                AddOption("Not Assigned", "gold");
+                AddOption("Assigned", "dodgerblue");
+                AddOption("In Progress", "lightgreen");
+                AddOption("Salvage Done", "seagreen");
+                AddOption("Completed", "purple");
+
+                builder.CloseElement();
+                break;
+
+            case "Date":
+                builder.OpenElement(10, "input");
+                builder.AddAttribute(11, "type", "date");
+                builder.AddAttribute(12, "class", "form-control");
+                builder.AddAttribute(13, "value", value);
+                builder.AddAttribute(14, "onchange", EventCallback.Factory.Create<ChangeEventArgs>(this, async e =>
+                {
+                    await TableService.UpdateCellValueAsync(row.Id, col.Id, e.Value?.ToString() ?? "");
+                    await LoadBoardAsync();
+                }));
+                builder.CloseElement();
+                break;
+
+            case "Number":
+                builder.OpenElement(15, "input");
+                builder.AddAttribute(16, "type", "number");
+                builder.AddAttribute(17, "class", "form-control");
+                builder.AddAttribute(18, "value", value);
+                builder.AddAttribute(19, "onchange", EventCallback.Factory.Create<ChangeEventArgs>(this, async e =>
+                {
+                    await TableService.UpdateCellValueAsync(row.Id, col.Id, e.Value?.ToString() ?? "");
+                    await LoadBoardAsync();
+                    await LoadDashboardStatsAsync();
+                }));
+                builder.CloseElement();
+                break;
+
+            case "Port":
+                builder.OpenElement(25, "select");
+                builder.AddAttribute(26, "class", "form-select");
+                builder.AddAttribute(27, "value", value);
+                builder.AddAttribute(28, "onchange", EventCallback.Factory.Create<ChangeEventArgs>(this, async e =>
+                {
+                    await TableService.UpdateCellValueAsync(row.Id, col.Id, e.Value?.ToString() ?? "");
+                    await LoadBoardAsync();
+                }));
+                builder.OpenElement(29, "option"); builder.AddContent(30, "Tampa Bay"); builder.CloseElement();
+                builder.OpenElement(31, "option"); builder.AddContent(32, "Gulfport"); builder.CloseElement();
+                builder.OpenElement(33, "option"); builder.AddContent(34, "Clearwater"); builder.CloseElement();
+                builder.OpenElement(35, "option"); builder.AddContent(36, "Hudson"); builder.CloseElement();
+                builder.OpenElement(37, "option"); builder.AddContent(38, "Homosassa & CR"); builder.CloseElement();
+                builder.CloseElement();
+                break;
+
+            default:
+                builder.OpenElement(20, "input");
+                builder.AddAttribute(21, "type", "text");
+                builder.AddAttribute(22, "class", "form-control");
+                builder.AddAttribute(23, "value", value);
+                builder.AddAttribute(24, "onchange", EventCallback.Factory.Create<ChangeEventArgs>(this, async e =>
+                {
+                    await TableService.UpdateCellValueAsync(row.Id, col.Id, e.Value?.ToString() ?? "");
+                    await LoadBoardAsync();
+                }));
+                builder.CloseElement();
+                break;
+        }
+    };
+
+    private List<SalvageRow> ActiveRows => Rows
+        .Where(r =>
+        {
+            var statusCol = Columns.FirstOrDefault(c => c.Label.Contains("Status", StringComparison.OrdinalIgnoreCase));
+            if (statusCol == null)
+                return false;
+            var statusCell = r.Cells.FirstOrDefault(cell => cell.ColumnId == statusCol.Id);
+            return statusCell != null && (statusCell.Value == "Not Assigned" || statusCell.Value == "Assigned" || statusCell.Value == "Salvage Done" || statusCell.Value == "Salvage Accomplished" || statusCell.Value == "In Progress");
+        }).ToList();
+
+    private async Task UploadMultipleFiles(InputFileChangeEventArgs e, int rowId, int colId)
+    {
+        try
+        {
+            var uploadsFolder = Path.Combine(Env.WebRootPath, "salvage_uploads");
+
+            Directory.CreateDirectory(uploadsFolder);
+
+            foreach (var file in e.GetMultipleFiles())
+            {
+                var fileName = $"{Guid.NewGuid()}_{file.Name}";
+                var path = Path.Combine(uploadsFolder, fileName);
+
+                await using var fs = new FileStream(path, FileMode.Create);
+                await file.OpenReadStream(1_000_000_000).CopyToAsync(fs);
+
+                await TableService.AddFileToCellAsync(rowId, colId, fileName, file.Name, "img");
+
+                _ = ToastService.ShowToast($"File: {file.Name} has been uploaded.", "success");
+            }
+            ErrorMessage = null;
+            await LoadBoardAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            StateHasChanged();
+            _ = ToastService.ShowToast($"Error: {ex}", "error");
+        }
+    }
+
+    private async Task UploadDocumentFiles(InputFileChangeEventArgs e, int rowId, int colId)
+    {
+        foreach (var file in e.GetMultipleFiles())
+        {
+            var fileName = $"{Guid.NewGuid()}_{file.Name}";
+            var path = Path.Combine(Env.WebRootPath, "salvage_uploads", fileName);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
+            await using var fs = new FileStream(path, FileMode.Create);
+            await file.OpenReadStream(50_000_000).CopyToAsync(fs);
+
+            await TableService.AddFileToCellAsync(rowId, colId, fileName, file.Name, file.ContentType);
+
+            _ = ToastService.ShowToast($"File: {file.Name} has been uploaded.", "success");
+        }
+        await LoadBoardAsync();
+    }
+
+    private void OpenGallery(List<SalvageFile> galleryFiles, string selectedFileName)
+    {
+        currentGallery = galleryFiles;
+        selectedImage = selectedFileName;
+        isGalleryOpen = true;
+    }
+
+    private SalvageFile? FindFileById(int fileId)
+    {
+        foreach (var row in Rows)
+        {
+            foreach (var cell in row.Cells)
+            {
+                var file = cell.Files?.FirstOrDefault(f => f.Id == fileId);
+                if (file != null)
+                    return file;
+            }
+        }
+        return null;
+    }
+
+    private async Task DeleteFileAsync(int fileId)
+    {
+        var file = FindFileById(fileId);
+        var fileName = file != null ? file.OriginalName : "Missing_File_Name";
+
+        await TableService.DeleteFileAsync(fileId);
+        await LoadBoardAsync();
+
+        _ = ToastService.ShowToast($"File: {fileName} has been deleted.", "success");
+
+        currentGallery = currentGallery.Where(f => f.Id != fileId).ToList();
+        if (currentGallery.Count == 0)
+        {
+            isGalleryOpen = false;
+        }
+        else if (!currentGallery.Any(f => f.FileName == selectedImage))
+        {
+            selectedImage = currentGallery.First().FileName;
+        }
+
+        docGalleryFiles = docGalleryFiles.Where(f => f.Id != fileId).ToList();
+    }
+
+    private void EditRow(SalvageRow row)
+    {
+        var col = Columns.FirstOrDefault(c => c.Label == "Notes");
+        if (col is not null)
+        {
+            OpenLongTextModal(row, col);
+        }
+    }
+
+    private async Task MarkRowInProgress(SalvageRow row)
+    {
+        var col = Columns.FirstOrDefault(c => c.Label == "Status");
+        if (col is not null)
+        {
+            await OnStatusChanged(row, col, "In Progress");
+        }
+    }
+
+    private async Task MarkRowComplete(SalvageRow row)
+    {
+        var col = Columns.FirstOrDefault(c => c.Label == "Status");
+        if (col is not null)
+        {
+            await OnStatusChanged(row, col, "Salvage Done");
+        }
+    }
+
+    private void OpenPhotosFromCard(SalvageRow row)
+    {
+        var imgCol = Columns.FirstOrDefault(c =>
+            string.Equals(c.Type, "FileUpload", StringComparison.OrdinalIgnoreCase));
+
+        if (imgCol == null) return;
+
+        var cell = row.Cells.FirstOrDefault(c => c.ColumnId == imgCol.Id);
+        var files = cell?.Files?.ToList() ?? new List<SalvageFile>();
+        if (files.Count == 0)
+        {
+            _ = ToastService.ShowToast("No photo found for this dispatch.", "error");
+            return;
+        }
+
+        OpenGallery(files, files[0].FileName);
+    }
+
+    private void OpenNotesFromCard(SalvageRow row)
+    {
+        var notesCol = Columns.FirstOrDefault(c => c.Label == "Notes");
+        if (notesCol is null)
+        {
+            return;
+        }
+
+        OpenLongTextModal(row, notesCol);
+    }
+}
+
+

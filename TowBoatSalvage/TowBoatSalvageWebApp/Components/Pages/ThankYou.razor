@@ -1,0 +1,98 @@
+﻿@page "/thank-you"
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="thank-you-container">
+    <MudPaper Elevation="1" Class="thank-you-card pa-6">
+
+        
+        <MudImage Src="assets/Clayton&Larry.jpg"
+                  Alt="Towboat Captain"
+                  Class="captain-image mb-4"
+                  Fluid="true" />
+
+        <MudStack Spacing="1">
+            @* <MudChip T="string" Variant="Variant.Outlined"
+                     Color="Color.Default"
+                     StartIcon="@Icons.Material.Filled.Apartment"
+                     Class="mb-4">
+                TowBoat Salvage
+            </MudChip> *@
+
+            <MudAvatar Color="Color.Success"
+                       Variant="Variant.Outlined"
+                       Size="Size.Large"
+                       Class="success-avatar mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.Check" />
+            </MudAvatar>
+        </MudStack>
+
+        
+
+        <MudText Typo="Typo.h3" Class="mb-2">Thank You!</MudText>
+
+        <MudText Typo="Typo.body1"  Class="mb-6">
+            Your signature has been successfully received. We appreciate your time and trust in us.
+        </MudText>
+
+        <MudPaper Outlined="true" Class="review-card pa-4">
+            <MudRating SelectedValue="5"
+                       ReadOnly="true"
+                       Color="Color.Warning"
+                       Size="Size.Medium"
+                       Class="mb-2" />
+
+            <MudText Typo="Typo.h6" Class="mb-1">Enjoyed your experience?</MudText>
+
+            <MudText Typo="Typo.body2"  Class="mb-3">
+                We'd love to hear from you! Your feedback helps us continue providing great service.
+            </MudText>
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Default"
+                       FullWidth="true"
+                       Href="https://search.google.com/local/writereview?placeid=ChIJW_4TPIL5wogRdO2oNUtFL0A"
+                       Target="_blank"
+                       EndIcon="@Icons.Material.Filled.OpenInNew">
+                Leave a Google Review
+            </MudButton>
+        </MudPaper>
+
+    </MudPaper>
+</MudContainer>
+
+@code {
+
+}
+
+<style>
+    .thank-you-container {
+        min-height: calc(100vh - 120px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .thank-you-card {
+        border-radius: 24px;
+        text-align: center;
+        max-width: 460px;
+        width: 100%;
+    }
+
+    .captain-image {
+        width: 100%;
+        max-height: 220px;
+        object-fit: cover;
+        border-radius: 16px;
+        border: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .success-avatar {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .review-card {
+        border-radius: 16px;
+        background-color: #fafaf9cc;
+    }
+</style>

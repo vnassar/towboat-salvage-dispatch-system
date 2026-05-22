@@ -1,0 +1,875 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@using MudBlazor
+@using TowBoatSalvageWebApp.Services
+@using TowBoatSalvageWebApp.Models
+
+@page "/work-order"
+
+@inject ISnackbar Snackbar
+@inject WorkOrderService WorkOrderService
+@inject UserService UserService
+@attribute [Authorize (Roles = "Admin,Manager,Mechanic")]
+<PageTitle>Maintenance & Work Order</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-0 maintenance-page">
+    @if (!IsFromAdminDashboard)
+    {
+        <TowBoatSalvageWebApp.Components.Pages.NavBar.NavigationBar />
+    }
+
+    <MudPaper Elevation="0" Square="true" Class="maintenance-shell mx-auto">
+        <!-- Header -->
+        <MudPaper Elevation="0" Square="true" Class="maintenance-header px-4 pt-6 pb-2">
+            <div class="header-title">
+                <MudIcon Icon="@Icons.Material.Filled.DirectionsBoat" Class="mr-2" />
+                <MudText Typo="Typo.h5" Class="header-title-text">Fleet Maintenance</MudText>
+            </div>
+
+            <div class="header-tabs mt-4">
+                <div class="@GetTabClass(WorkOrderTab.NewRequest)" @onclick="() => SetTab(WorkOrderTab.NewRequest)">
+                    <MudIcon Icon="@Icons.Material.Filled.Anchor" Size="Size.Small" Class="mr-1" />
+                    <span>New Request</span>
+                </div>
+
+                <div class="@GetTabClass(WorkOrderTab.OpenOrders)" @onclick="() => SetTab(WorkOrderTab.OpenOrders)">
+                    <MudIcon Icon="@Icons.Material.Filled.Build" Size="Size.Small" Class="mr-1" />
+                    <span>Open Orders</span>
+                    <MudBadge Content="@OpenOrderCount" Color="Color.Warning" Class="ml-2" />
+                </div>
+            </div>
+        </MudPaper>
+
+        @if (ActiveTab == WorkOrderTab.NewRequest)
+        {
+            <!-- New Request -->
+            <MudPaper Elevation="2" Class="request-card pa-4 ma-4">
+                <MudText Typo="Typo.h4" Class="mb-4">New Request</MudText>
+
+                <MudSelect T="string" Label="Select Boat" Variant="Variant.Filled" Margin="Margin.Dense" Class="mb-3" @bind-Value="selectedBoat">
+                    @foreach (var boat in boats)
+                    {
+                        <MudSelectItem Value="@boat">@boat</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudDatePicker Label="Date" Variant="Variant.Filled" Margin="Margin.Dense" Class="mb-3" @bind-Date="logDate"/>
+
+                <MudGrid Class="mb-2">
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="decimal?" Label="Engine 1 (hrs)" Placeholder="e.g. 1250" InputType="InputType.Number" Variant="Variant.Filled" Margin="Margin.Dense" @bind-Value="engine1Hours" Required="true"/>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="decimal?" Label="Engine 2 (hrs)" Placeholder="e.g. 1250" InputType="InputType.Number" Variant="Variant.Filled" Margin="Margin.Dense" @bind-Value="engine2Hours" Required="true"/> 
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="my-3" />
+
+
+
+                <MudText Typo="Typo.subtitle1" Class="mb-2">Reported Issues</MudText>
+
+                <MudGrid Class="mb-2">
+                    <MudItem xs="9">
+                        <MudTextField T="string"
+                                      Placeholder="Describe the issue..."
+                                      Variant="Variant.Filled"
+                                      Margin="Margin.Dense"
+                                      @bind-Value="NewIssueText"
+                                      OnKeyDown="HandleIssueInputKeyDown" />
+                    </MudItem>
+                    <MudItem xs="3" Class="d-flex align-center">
+                        <MudFab Variant="Variant.Filled"
+                                   Color="Color.Default"
+                                   Class="add-issue-btn"
+                                   FullWidth="true"
+                                   OnClick="AddIssue"
+                                   StartIcon="@Icons.Material.Filled.Add">
+                        </MudFab>
+                    </MudItem>
+                </MudGrid>
+
+                @if (ReportedIssues.Count == 0)
+                {
+                    <MudPaper Elevation="0" Class="no-issues-box pa-4 mb-4">
+                        <MudText Typo="Typo.body1" Align="Align.Center" Class="font-italic">
+                            No issues added yet. Type an issue above and tap +.
+                        </MudText>
+                    </MudPaper>
+                }
+                else
+                {
+                    <div class="mb-4">
+                        @foreach (var issue in ReportedIssues)
+                        {
+                            <MudPaper Elevation="0" Class="issue-row px-3 py-2 mb-2">
+                                <MudText Typo="Typo.body1">@issue</MudText>
+                                <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                               Size="Size.Small"
+                                               Class="issue-remove-btn"
+                                               OnClick="@(() => RemoveIssue(issue))" />
+                            </MudPaper>
+                        }
+                    </div>
+                }
+
+                <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" Class="submit-btn" OnClick="SubmitWorkOrderAsync">
+                    Submit Work Order
+                </MudButton>
+            </MudPaper>
+        }
+        else
+        {
+            <!-- Open Orders -->
+            <div class="open-orders-wrap pa-4">
+                <div class="d-flex align-center justify-space-between mb-3">
+                    <MudText Typo="Typo.h5" Class="font-weight-bold">Needs Attention</MudText>
+                    <MudChip T="int" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">@OpenOrderCount Orders</MudChip>
+                </div>
+
+                @if (OpenOrderCount == 0)
+                {
+                    <MudPaper Elevation="1" Class="request-card pa-4">
+                        <MudText Typo="Typo.body1" Align="Align.Center">No open orders right now.</MudText>
+                    </MudPaper>
+                }
+                else
+                {
+                    @foreach (var order in OpenOrders.Where(x => !x.IsResolved))
+                    {
+                        <MudPaper Elevation="2" Class="open-order-card pa-3 mb-4">
+                            <div class="d-flex align-start mb-2">
+                                <div class="order-boat-icon mr-3">
+                                    <MudIcon Icon="@Icons.Material.Outlined.DirectionsBoat" />
+                                </div>
+                                <div>
+                                    <MudText Typo="Typo.h5" Class="font-weight-bold">@order.VesselName</MudText>
+                                    <MudText Typo="Typo.body2" Class="order-date">
+                                        <MudIcon Icon="@Icons.Material.Outlined.Schedule" Size="Size.Small" Class="mr-1" />
+                                        @order.RequestDateDisplay
+                                    </MudText>
+                                </div>
+                            </div>
+
+                            <MudPaper Elevation="0" Class="engines-box pa-3 mb-3">
+                                <MudGrid>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption" Class="engine-label">PORT ENGINE</MudText>
+                                        <MudText Typo="Typo.h6"><strong>@order.Engine1Hours</strong> <span class="engine-hrs">hrs</span></MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption" Class="engine-label">STBD ENGINE</MudText>
+                                        <MudText Typo="Typo.h6"><strong>@order.Engine2Hours</strong> <span class="engine-hrs">hrs</span></MudText>
+                                    </MudItem>
+                                </MudGrid>
+                            </MudPaper>
+
+                            <MudText Typo="Typo.subtitle1" Class="mb-2 font-weight-bold">
+                                <MudIcon Icon="@Icons.Material.Outlined.ErrorOutline" Size="Size.Small" Class="mr-1 issue-alert-icon" />
+                                Reported Issues (@order.ReportedIssues.Count)
+                            </MudText>
+
+                            <div class="issue-correction-list">
+                            @for (var i = 0; i < order.ReportedIssues.Count; i++)
+                            {
+                                var issueIndex = i;
+                                var thread = GetCorrectionThread(order, issueIndex);
+
+                                <!-- The issue -->
+                                <MudPaper Elevation="0" Class="order-issue-item px-3 py-2 mb-1">
+                                    <span class="issue-dot">•</span>
+                                    <MudText Typo="Typo.body1" Class="font-weight-bold">
+                                        Issue #@(issueIndex + 1): @order.ReportedIssues[issueIndex]
+                                    </MudText>
+                                </MudPaper>
+
+                                <!-- Existing corrections (read-only thread) -->
+                                @if (thread.Count > 0)
+                                {
+                                    @foreach (var correction in thread)
+                                    {
+                                        <MudPaper Elevation="0" Class="correction-box px-3 py-2 mb-1">
+                                            <div class="d-flex justify-space-between align-center">
+                                                <MudText Typo="Typo.caption" Class="correction-label">
+                                                    @correction.Author
+                                                </MudText>
+                                                <MudText Typo="Typo.caption" Style="color:#8899aa;">
+                                                    @correction.CreatedAtUtc.ToLocalTime().ToString("M/d/yyyy h:mm tt")
+                                                </MudText>
+                                            </div>
+                                            <MudText Typo="Typo.body2">@correction.Text</MudText>
+                                        </MudPaper>
+                                    }
+                                }
+                                else
+                                {
+                                    <MudPaper Elevation="0" Class="correction-box px-3 py-2 mb-1">
+                                        <MudText Typo="Typo.body2" Class="font-italic" Style="color:#8899aa;">
+                                            No corrections yet.
+                                        </MudText>
+                                    </MudPaper>
+                                }
+
+                                <!-- Add Correction input (per-issue) -->
+                                @if (IsAddingCorrectionForIssue(order.Id, issueIndex))
+                                {
+                                    <MudPaper Elevation="0" Class="correction-box px-3 py-2 mb-3" Style="border-color:#66bb6a;">
+                                        <MudTextField T="string"
+                                                      Value="@GetNewCorrectionText(order.Id, issueIndex)"
+                                                      ValueChanged="@((string? val) => SetNewCorrectionText(order.Id, issueIndex, val ?? string.Empty))"
+                                                      Placeholder="Describe what was done..."
+                                                      Lines="2"
+                                                      Variant="Variant.Filled"
+                                                      Margin="Margin.Dense"
+                                                      Class="mb-2" />
+                                        <div class="d-flex gap-2">
+                                            <MudButton Variant="Variant.Filled"
+                                                       Color="Color.Success"
+                                                       Size="Size.Small"
+                                                       Disabled="@string.IsNullOrWhiteSpace(GetNewCorrectionText(order.Id, issueIndex))"
+                                                       OnClick="@(() => SubmitCorrectionAsync(order, issueIndex))">
+                                                Save
+                                            </MudButton>
+                                            <MudButton Variant="Variant.Text"
+                                                       Size="Size.Small"
+                                                       OnClick="@(() => CancelAddingCorrection(order.Id, issueIndex))">
+                                                Cancel
+                                            </MudButton>
+                                        </div>
+                                    </MudPaper>
+                                }
+                                else
+                                {
+                                    <div class="mb-3">
+                                        <MudButton Variant="Variant.Text"
+                                                   Color="Color.Primary"
+                                                   Size="Size.Small"
+                                                   StartIcon="@Icons.Material.Filled.AddComment"
+                                                   OnClick="@(() => StartAddingCorrection(order.Id, issueIndex))">
+                                            Add Correction
+                                        </MudButton>
+                                    </div>
+                                }
+                            }
+                        </div>
+
+                                                    <!-- Add Issue to existing order -->
+                            @if (IsAddingIssue(order.Id))
+                            {
+                                <MudPaper Elevation="0" Class="order-issue-item px-3 py-2 mb-2" Style="border-color:#66bb6a;">
+                                    <MudTextField T="string"
+                                                  Value="@GetNewIssueText(order.Id)"
+                                                  ValueChanged="@((string? val) => SetNewIssueText(order.Id, val ?? string.Empty))"
+                                                  Placeholder="Describe the new issue..."
+                                                  Variant="Variant.Filled"
+                                                  Margin="Margin.Dense"
+                                                  Class="flex-grow-1 mb-2" />
+                                    <div class="d-flex gap-2">
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Success"
+                                                   Size="Size.Small"
+                                                   Disabled="@string.IsNullOrWhiteSpace(GetNewIssueText(order.Id))"
+                                                   OnClick="@(() => SubmitNewIssueAsync(order))">
+                                            Save
+                                        </MudButton>
+                                        <MudButton Variant="Variant.Text"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => CancelAddingIssue(order.Id))">
+                                            Cancel
+                                        </MudButton>
+                                    </div>
+                                </MudPaper>
+                            }
+                            else
+                            {
+                                <div class="mb-2">
+                                    <MudButton Variant="Variant.Text"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               StartIcon="@Icons.Material.Filled.Add"
+                                               OnClick="@(() => StartAddingIssue(order.Id))">
+                                        Add Issue
+                                    </MudButton>
+                                </div>
+                            }
+
+                          <MudDivider Class="my-3" />
+
+                        <!-- Resolve button -->
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Success"
+                                   FullWidth="true"
+                                   Disabled="@(!CanResolveOrder(order))"
+                                   OnClick="@(() => ResolveOrderAsync(order))">
+                            <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Class="mr-1" />
+                            Resolve Work Order
+                        </MudButton>
+
+                        @if (!CanResolveOrder(order))
+                        {
+                            <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-1" Style="color:#8899aa;">
+                                Every issue needs at least one correction before resolving.
+                            </MudText>
+                        }
+                        </MudPaper>
+                    }
+                }
+            </div>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+
+    [Parameter] public bool IsFromAdminDashboard { get; set; }
+
+    private WorkOrderTab ActiveTab { get; set; } = WorkOrderTab.NewRequest;
+
+    private string NewIssueText { get; set; } = string.Empty;
+
+    // Dummy data for testing "New Request"
+    private List<string> ReportedIssues { get; set; } = new();
+    private string selectedBoat = "";
+    private string? selectedCrew;
+    private DateTime? logDate = DateTime.UtcNow.ToLocalTime();
+    private decimal? engine1Hours;
+    private decimal? engine2Hours;
+
+    //tracks which OrderId, issueIndex pairs curretly have the text box open
+    private readonly HashSet<(int OrderId, int IssueIndex)> _addingCorrection = new();
+    //holds the draft text the user is typing for each orderId, issueIndex
+    private readonly Dictionary<(int OrderId, int IssueIndex), string> _correctionDrafts = new();
+
+    private readonly HashSet<int> _addingIssue = new();
+    private readonly Dictionary<int, string> _issueDrafts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadWorkOrdersAsync();
+    }
+
+    private async Task LoadWorkOrdersAsync()
+    {
+        OpenOrders = await WorkOrderService.GetAllAsync();
+        foreach (var order in OpenOrders) EnsureIssueCorrectionCount(order);
+    }
+
+    private readonly List<string> boats = new()
+    {
+        "Towboat 1",
+        "Towboat 2",
+        "Towboat 3",
+        "Towboat 4",
+        "Towboat 5",
+        "Towboat 6",
+        "Towboat 7",
+        "Towboat 8",
+        "Towboat 9",
+        "Towboat 10",
+        "Towboat 11",
+        "Towboat 12",
+        "Towboat 14",
+        "Towboat 16",
+    };
+
+    private readonly List<string> crewMembers = new()
+    {
+        "Kris",
+        "Ryan",
+        "David",
+        "James",
+        "Casey",
+        "Andrew"
+    };
+
+    private List<WorkOrder> OpenOrders { get; set; } = new();
+
+    private int OpenOrderCount => OpenOrders.Count(x => !x.IsResolved);
+
+    private void SetTab(WorkOrderTab tab) => ActiveTab = tab;
+
+    private string GetTabClass(WorkOrderTab tab) => ActiveTab == tab ? "header-tab active" : "header-tab";
+
+    private void AddIssue()
+    {
+        var issue = NewIssueText?.Trim();
+        if (string.IsNullOrWhiteSpace(issue))
+            return;
+
+
+
+        ReportedIssues.Add(issue);
+        NewIssueText = string.Empty;
+    }
+
+    private async Task SubmitCorrectionAsync(WorkOrder order, int issueIndex)
+    {
+        var text = GetNewCorrectionText(order.Id, issueIndex);
+        if (string.IsNullOrWhiteSpace(text)) return;
+
+        // Use the logged-in user's name as the author
+        var author = UserService.Name ?? "Unknown";
+
+        await WorkOrderService.AddCorrectionAsync(order.Id, issueIndex, author, text);
+
+        // Clean up UI state
+        CancelAddingCorrection(order.Id, issueIndex);
+
+        Snackbar.Add($"Correction added to issue #{issueIndex + 1}.", Severity.Success);
+        await LoadWorkOrdersAsync();
+    }
+
+    private async Task SubmitWorkOrderAsync()
+    {
+        var workOrder = new WorkOrder
+        {
+            VesselName = selectedBoat,
+            RequestDateDisplay = logDate,
+            Engine1Hours = engine1Hours.ToString()!,
+            Engine2Hours = engine2Hours.ToString()!,
+            ReportedIssues = ReportedIssues,
+            IssueCorrectionThreads = new(),
+            IssueCorrections = ReportedIssues.Select(_ => string.Empty).ToList(),
+            IssueCorrectionsBy = ReportedIssues.Select(_ => string.Empty).ToList(),
+            FromCrewMember = selectedCrew ?? "",
+            IsResolved = false
+        };
+
+        await WorkOrderService.AddAsync(workOrder);
+        Snackbar.Add($"Work order submitted successfully", Severity.Success);
+
+        selectedBoat = "";
+        engine1Hours = null;
+        engine2Hours = null;
+        ReportedIssues.Clear();
+        selectedCrew = "";
+
+        await LoadWorkOrdersAsync();
+    }
+
+    private List<IssueCorrection> GetCorrectionThread(WorkOrder order, int issueIndex)
+    {
+        //new data path
+        if (order.IssueCorrectionThreads?.TryGetValue(issueIndex, out var thread) == true && thread.Count > 0) return thread;
+
+        //legacy fallback: if the old IssueCorrections list has data, show it as a single entry
+        if (order.IssueCorrections is not null
+            && issueIndex < order.IssueCorrections.Count
+            && !string.IsNullOrWhiteSpace(order.IssueCorrections[issueIndex]))
+        {
+            var legacyAuthor = order.IssueCorrectionsBy is not null && issueIndex < order.IssueCorrectionsBy.Count
+                ? order.IssueCorrectionsBy[issueIndex]
+                : "Unknown";
+
+            return new List<IssueCorrection>
+            {
+                new()
+                {
+                    Author = legacyAuthor,
+                    Text = order.IssueCorrections[issueIndex],
+                    CreatedAtUtc = order.RequestDateDisplay?.ToUniversalTime() ?? DateTime.UtcNow
+                }
+            };
+        }
+
+        return new();
+    }
+
+    private bool IsAddingCorrectionForIssue(int orderId, int issueIndex)
+        => _addingCorrection.Contains((orderId, issueIndex));
+
+    private void StartAddingCorrection(int orderId, int issueIndex)
+    {
+        _addingCorrection.Add((orderId, issueIndex));
+        _correctionDrafts[(orderId, issueIndex)] = string.Empty;
+    }
+
+    private void CancelAddingCorrection(int orderId, int issueIndex)
+    {
+        _addingCorrection.Remove((orderId, issueIndex));
+        _correctionDrafts.Remove((orderId, issueIndex));
+    }
+
+    private string GetNewCorrectionText(int orderId, int issueIndex)
+        => _correctionDrafts.TryGetValue((orderId, issueIndex), out var text) ? text : string.Empty;
+
+    private void SetNewCorrectionText(int orderId, int issueIndex, string value)
+        => _correctionDrafts[(orderId, issueIndex)] = value;
+
+    private void RemoveIssue(string issue)
+    {
+        ReportedIssues.Remove(issue);
+    }
+
+    private void HandleIssueInputKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+            AddIssue();
+    }
+
+    private void StartCorrection(WorkOrder order)
+    {
+        EnsureIssueCorrectionCount(order);
+        order.IsAddingCorrection = true;
+    }
+
+    private void CancelCorrection(WorkOrder order)
+    {
+        order.IsAddingCorrection = false;
+        order.CorrectionNotes = string.Empty;
+    }
+
+    private async Task ResolveOrderAsync(WorkOrder order)
+    {
+        if (!CanResolveOrder(order))
+        {
+            Snackbar.Add("Please add a correction for each issue and select a mechanic.", Severity.Warning);
+            return;
+        }
+
+        order.IsResolved = true;
+        order.IsAddingCorrection = false;
+
+        //  legacy text for existing screens that still read CorrectionNotes
+        // order.CorrectionNotes = BuildLegacyCorrectionNotes(order);
+        await WorkOrderService.UpdateAsync(order);
+        Snackbar.Add($"{order.VesselName} work order resolved.", Severity.Success);
+
+        await LoadWorkOrdersAsync();
+    }
+
+    private static void EnsureIssueCorrectionCount(WorkOrder order)
+    {
+        if (order.IssueCorrections is null) order.IssueCorrections = new();
+        if (order.IssueCorrectionsBy is null) order.IssueCorrectionsBy = new();
+
+        while (order.IssueCorrections.Count < order.ReportedIssues.Count) order.IssueCorrections.Add(string.Empty);
+        while (order.IssueCorrectionsBy.Count < order.ReportedIssues.Count) order.IssueCorrectionsBy.Add(string.Empty);
+
+        if (order.IssueCorrections.Count > order.ReportedIssues.Count) order.IssueCorrections = order.IssueCorrections.Take(order.ReportedIssues.Count).ToList();
+
+        if (order.IssueCorrectionsBy.Count > order.ReportedIssues.Count) order.IssueCorrectionsBy = order.IssueCorrectionsBy.Take(order.ReportedIssues.Count).ToList();
+    }
+
+    private string GetIssueCorrection(WorkOrder order, int index)
+    {
+        EnsureIssueCorrectionCount(order);
+
+        // fallback for old record that only have CorrectionNotes
+        if (index == 0 && string.IsNullOrWhiteSpace(order.IssueCorrections[index]) && !string.IsNullOrWhiteSpace(order.CorrectionNotes)) return order.CorrectionNotes;
+
+        return order.IssueCorrections[index];
+    }
+
+    private string GetIssueCorrectionBy(WorkOrder order, int index)
+    {
+        EnsureIssueCorrectionCount(order);
+
+        // fallback for old record that only have CorrectionNotes
+        //if (index == 0 && string.IsNullOrWhiteSpace(order.IssueCorrectionsBy[index]) && !string.IsNullOrWhiteSpace(order.CorrectionNotes)) return order.CorrectionNotes;
+
+        return order.IssueCorrectionsBy[index];
+    }
+
+    private void UpdateIssueCorrection(WorkOrder order, int index, string value, string MechanicName)
+    {
+        EnsureIssueCorrectionCount(order);
+
+        var trimmed = value.Trim();
+        var previous = order.IssueCorrections[index];
+
+        var name = UserService.Name;
+
+        order.IssueCorrections[index] = $"{name}: {trimmed}";
+
+        //only stamp author when this issue was actually changed
+        if (!string.Equals(previous, trimmed, StringComparison.Ordinal))
+        {
+            order.IssueCorrectionsBy[index] = string.IsNullOrWhiteSpace(trimmed) ? string.Empty : MechanicName.Trim();
+        }
+    }
+
+    private bool CanResolveOrder(WorkOrder order)
+    {
+        for (var i = 0; i < order.ReportedIssues.Count; i++)
+        {
+            var thread = GetCorrectionThread(order, i);
+            if (thread.Count == 0) return false;
+        }
+        return order.ReportedIssues.Count > 0;
+    }
+
+    private static string BuildLegacyCorrectionNotes(WorkOrder order)
+    {
+        var lines = order.ReportedIssues
+            .Select((issue, i) => $"{i + 1}. {issue} -> {order.IssueCorrections.ElementAtOrDefault(i)}");
+
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    private async Task UpdateOrderProgressAsync(WorkOrder order)
+    {
+        EnsureIssueCorrectionCount(order); //ensure orders are synced
+
+        if (string.IsNullOrWhiteSpace(order.FromCrewMember))
+        {
+            Snackbar.Add("Please select a mechanic before updating.", Severity.Warning);
+            return;
+        }
+
+        order.IsResolved = false;
+        order.IsAddingCorrection = false;
+
+        // legacy text in sync fo rscreens that still use CorrectionNotes
+        order.CorrectionNotes = BuildLegacyCorrectionNotes(order);
+
+        await WorkOrderService.UpdateAsync(order);
+        Snackbar.Add($"{order.VesselName} work order updated.", Severity.Success);
+
+        await LoadWorkOrdersAsync();
+    }
+
+    private bool IsAddingIssue(int orderId) => _addingIssue.Contains(orderId);
+
+    private void StartAddingIssue(int orderId)
+    {
+        _addingIssue.Add(orderId);
+        _issueDrafts[orderId] = string.Empty;
+    }
+
+    private void CancelAddingIssue(int orderId)
+    {
+        _addingIssue.Remove(orderId);
+        _issueDrafts.Remove(orderId);
+    }
+
+    private string GetNewIssueText(int orderId) => _issueDrafts.TryGetValue(orderId, out var text) ? text : string.Empty;
+
+    private void SetNewIssueText(int orderId, string value) => _issueDrafts[orderId] = value;
+
+    private async Task SubmitNewIssueAsync(WorkOrder order)
+    {
+        var text = GetNewIssueText(order.Id)?.Trim();
+        if (string.IsNullOrWhiteSpace(text)) return;
+
+        order.ReportedIssues.Add(text);
+
+        //keep legacy correction lists in sync 
+        order.IssueCorrections ??= new();
+        order.IssueCorrectionsBy ??= new();
+        order.IssueCorrections.Add(string.Empty);
+        order.IssueCorrectionsBy.Add(string.Empty);
+
+        await WorkOrderService.UpdateAsync(order);
+
+        CancelAddingIssue(order.Id);
+        Snackbar.Add($"Issue added to {order.VesselName}.", Severity.Success);
+        await LoadWorkOrdersAsync();
+    }
+
+    private enum WorkOrderTab
+    {
+        NewRequest,
+        OpenOrders
+    }
+
+    
+}
+
+<style>
+    .maintenance-page {
+        background: #eef0f3;
+        min-height: 100vh;
+    }
+
+    .maintenance-shell {
+        max-width: 450px;
+        min-height: 100vh;
+        background: #eef0f3;
+    }
+
+    .maintenance-header {
+        background: #12243f;
+        color: #fff;
+    }
+
+    .header-title {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffb300;
+        font-weight: 700;
+    }
+
+    .header-title-text {
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .header-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        color: #fff;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .header-tab {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 14px 8px 12px 8px;
+        font-weight: 600;
+        opacity: 0.95;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+    }
+
+        .header-tab.active {
+            border-bottom: 3px solid #f59e0b;
+        }
+
+    .request-card {
+        border-radius: 14px;
+        background: #f8f9fb; @*f8f9fb*@
+    }
+    }
+
+    .add-issue-btn {
+        min-height: 52px;
+        border-radius: 10px;
+        background-color: #8f96a3 !important;
+        color: #fff !important;
+    }
+
+    .no-issues-box {
+        border-radius: 10px;
+        background: #eef1f5;
+        color: #6b7280;
+    }
+
+    .issue-row {
+        border-radius: 10px;
+        background: #f3f6fa;
+        border: 1px solid #d4dce8;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .issue-remove-btn {
+        color: #8ea0b5;
+    }
+
+    .submit-btn {
+        min-height: 56px;
+        border-radius: 12px;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #101828 !important;
+    }
+
+    .open-order-card {
+        border-radius: 12px;
+        background: #f8f9fb;
+    }
+
+    .order-boat-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: #eef1f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6b7280;
+    }
+
+    .order-date {
+        color: #61708a;
+        display: flex;
+        align-items: center;
+    }
+
+    .engines-box {
+        border-radius: 8px;
+        background: #edf1f7;
+    }
+
+    .engine-label {
+        color: #5f6f86;
+        font-weight: 700;
+        letter-spacing: .6px;
+    }
+
+    .engine-hrs {
+        color: #5f6f86;
+        font-size: .9rem;
+    }
+
+    .issue-alert-icon {
+        color: #f59e0b;
+    }
+
+    .order-issue-item {
+        border-radius: 8px;
+        background: #f8f6f0;
+        border: 1px solid #f1e3b8;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .issue-dot {
+        color: #e9ad00;
+        font-size: 1.2rem;
+        line-height: 1;
+    }
+
+    .add-correction-btn {
+        border-radius: 8px;
+        background: #e8eef9 !important;
+        color: #1d4ed8 !important;
+    }
+
+    .issue-correction-list {
+    display: flex;
+    flex-direction: column;
+    }
+
+    .issue-box {
+        border-radius: 10px;
+        background: #f8f6f0;
+        border: 1px solid #f1e3b8;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .correction-box {
+        margin-left: 22px;
+        border-radius: 10px;
+        background: #edf4ff;
+        border: 1px solid #cddffc;
+        position: relative;
+    }
+
+    .correction-box::before {
+        content: "";
+        position: absolute;
+        left: -14px;
+        top: 16px;
+        width: 12px;
+        border-top: 2px dashed #b7c7e6;
+    }
+
+    .correction-label {
+        color: #425b84;
+        font-weight: 700;
+        letter-spacing: .2px;
+    }
+
+    .update-correction-btn {
+    border-radius: 8px;
+    }
+</style>

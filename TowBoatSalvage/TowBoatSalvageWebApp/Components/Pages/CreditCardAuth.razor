@@ -1,0 +1,424 @@
+﻿@page "/credit-auth/{Token}"
+@using TowBoatSalvageWebApp.Models
+@using TowBoatSalvageWebApp.Services
+@using MudBlazor
+@inject ISnackbar Snackbar
+@inject DispatchSigningLinkService LinkService
+@inject NavigationManager Nav
+@inject DispatchSignedPdfService PdfService
+
+<PageTitle>Payment Authorization</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="pa-4">
+
+    
+    <MudPaper Elevation="2" Class="auth-banner pa-4 mb-4">
+
+        <MudImage Src="assets/TowBoatLogo.png"
+                  Alt="Towboat Logo"
+                  Class="captain-image mb-4"
+                  Fluid="true" />
+
+        <MudStack Row="false" Spacing="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.Shield" Color="Color.Primary" />
+                <MudText Typo="Typo.h6"><strong>Payment Authorization</strong></MudText>
+            </MudStack>
+            <MudText Typo="Typo.body2" Color="Color.Default">
+                You authorize a single charge to your credit or debit card. You will be charged the amount
+                indicated below. A receipt for this payment will be provided to you and the charge will
+                appear on your credit card or bank statement.
+            </MudText>
+
+            @if (!_isValidToken)
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="invalid-token-alert">
+                    This payment link is invalid or has expired.
+                </MudAlert>
+            }
+            else
+            {
+                <div class="amount-box">
+                    <div>
+                        <div class="amount-label">Authorized Amount</div>
+                       @*  <div class="amount-token">
+                            Loaded from secure token: @(Token?[..Math.Min(8, Token?.Length ?? 0)] + "…")
+                        </div> *@
+                    </div>
+                    <span class="amount-value">$@_quote</span>
+                </div>
+            }
+        </MudStack>
+    </MudPaper>
+
+    @if (_isValidToken)
+    {
+        
+        <MudPaper Elevation="1" Class="section-card mb-4">
+            <div class="section-title">
+                Customer &amp; Vessel Information
+            </div>
+            <hr class="section-divider" />
+            <MudForm @ref="_customerForm">
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string" @bind-Value="_customerName"
+                                      Label="Full Name"
+                                      Placeholder="John Doe"
+                                      Variant="Variant.Outlined"
+                                      Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string" @bind-Value="_vesselName"
+                                      Label="Vessel Name (Optional)"
+                                      Placeholder="e.g. Sea Breeze"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string" @bind-Value="_length"
+                                      Label="Vessel Length"
+                                      Placeholder="e.g. 32 ft"
+                                      Variant="Variant.Outlined"
+                                      Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string" @bind-Value="_makeModel"
+                                      Label="Vessel Make/Model"
+                                      Placeholder="e.g. Sea Ray Sundancer"
+                                      Variant="Variant.Outlined"
+                                      Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string" @bind-Value="_phoneNumber"
+                                      Label="Phone Number"
+                                      Placeholder="(555) 123-4567"
+                                      Variant="Variant.Outlined"
+                                      Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string" @bind-Value="_gps"
+                                      Label="GPS Position"
+                                      Placeholder="Lat / Long coordinates"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string" @bind-Value="_customerAddress"
+                                      Label="Billing Address"
+                                      Placeholder="13621 Walsingham Rd"
+                                      Variant="Variant.Outlined" 
+                                      Required="true"/>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+
+        
+        <MudPaper Elevation="1" Class="section-card mb-4">
+            <div class="section-title section-title--payment">
+                <MudIcon Icon="@Icons.Material.Filled.CreditCard" Size="Size.Small" />
+                Payment Details
+            </div>
+            <hr class="section-divider" />
+            <MudForm @ref="_cardForm">
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudTextField T="string" @bind-Value="_cardholderName"
+                                      Label="Cardholder Name"
+                                      Placeholder="Name exactly as it appears on card"
+                                      Variant="Variant.Outlined"
+                                      Required="true" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField T="string" @bind-Value="_cardNumber"
+                                      Label="Card Number"
+                                      Placeholder="0000 0000 0000 0000"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.CreditCard"
+                                      Required="true"
+                                      MaxLength="19" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string" @bind-Value="_expiration"
+                                      Label="Expiration Date"
+                                      Placeholder="MM/YY"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      MaxLength="5" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string" @bind-Value="_cvv"
+                                      Label="CVV"
+                                      Placeholder="123"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      MaxLength="4"
+                                      InputType="InputType.Password" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string" @bind-Value="_zip"
+                                      Label="Zip Code"
+                                      Placeholder="33714"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      MaxLength="5"
+                                      InputType="InputType.Password" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                            <MudSelect T="string" @bind-Value="_selectedCardType" 
+                             Label="Card Type"
+                             Required="true"
+                             Variant="Variant.Filled" >
+                            @foreach (var card in CardTypes)
+                                {
+                                    <MudSelectItem Value="card">@card</MudSelectItem>
+                                }
+                            </MudSelect>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+
+        
+        <div class="signature-box mb-4">
+            <div class="signature-box-title">Electronic Signature</div>
+            <MudDivider Class="mb-3" />
+            <MudForm @ref="_signatureForm">
+                <MudCheckBox T="bool" @bind-Value="_agree"
+                             Required="true"
+                             Label="I agree to authorize this charge and accept the electronic signature below as my legal signature." />
+
+                <MudGrid Class="mt-3">
+                    <MudItem xs="12" md="8">
+                        <div class="signature-col-label">Type Name to Sign</div>
+                        <MudTextField T="string" @bind-Value="_signature"
+                                      Placeholder="Type your full name"
+                                      Variant="Variant.Text"
+                                      Required="true" />
+                        <div class="signature-hint">Must match the Full Name provided above.</div>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <div class="signature-col-label">Date</div>
+                        <div class="signature-date">@DateTime.Today.ToString("MMMM d, yyyy")</div>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        </div>
+
+        
+        <div class="auth-footer">
+            <div class="ssl-badge">
+                <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" />
+                Secure 256-bit SSL Encryption
+            </div>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Large"
+                       Class="authorize-btn"
+                       OnClick="SubmitAuthorizationAsync">
+                Authorize Payment of $@_quote
+            </MudButton>
+        </div>
+
+        
+        <div class="legal-footer mt-4">
+            <div class="legal-footer-text">
+                © @DateTime.Today.Year Marine Towing Services. All rights reserved.
+            </div>
+            <div class="legal-footer-link">This is a legally binding document.</div>
+        </div>
+    }
+
+</MudContainer>
+
+@code {
+    [Parameter] public string? Token { get; set; }
+
+    private MudForm? _customerForm;
+    private MudForm? _cardForm;
+    private MudForm? _signatureForm;
+
+    private bool _isValidToken = false;
+    private DocumentSignatureRequest? _request;
+
+    // Customer & vessel fields
+    private string _customerName = "";
+    private string _customerEmail = "";
+    private string _vesselName = "";
+    private string _length = "";
+    private string _makeModel = "";
+    private string _phoneNumber = "";
+    private string _gps = "";
+    private string _quote = "0.00";
+    private string _formName = "";
+    private string _customerAddress = "";
+
+    // Payment fields
+    private string _cardholderName = "";
+    private string _cardNumber = "";
+    private string _expiration = "";
+    private string _cvv = "";
+    private string _zip = "";
+
+    // Signature
+    private string _signature = "";
+    private bool _agree = false;
+
+    private string _selectedCardType = "";
+
+    private static readonly List<string> CardTypes = new()
+    {
+         "Mastercard",
+         "Visa",
+         "Discover",
+         "Amex"
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var rawToken = Token is null ? null : Uri.UnescapeDataString(Token);
+        _request = rawToken is null ? null : await LinkService.GetValidRequestAsync(rawToken);
+        _isValidToken = _request is not null;
+
+        if (_request is not null)
+        {
+            _customerName = _request.CustomerName;
+            _customerEmail = _request.CustomerEmail;
+            _vesselName = _request.VesselName ?? "";
+            _length = _request.VesselLength ?? "";
+            _makeModel = _request.VesselMakeModel ?? "";
+            _phoneNumber = _request.CustomerPhone;
+            _gps = _request.GPS;
+            _quote = _request.Quote ?? "0.00";
+        }
+    }
+
+    private async Task SubmitAuthorizationAsync()
+    {
+        if (_customerForm is null || _cardForm is null || _signatureForm is null) return;
+
+        await _customerForm.Validate();
+        await _cardForm.Validate();
+        await _signatureForm.Validate();
+
+        if (!_customerForm.IsValid || !_cardForm.IsValid || !_signatureForm.IsValid)
+        {
+            Snackbar.Add("Please complete all required fields.", Severity.Warning);
+            return;
+        }
+
+        if (!_agree)
+        {
+            Snackbar.Add("You must agree to authorize this charge.", Severity.Warning);
+            return;
+        }
+
+
+        //check with james if required, change to ignore capitalization
+        // if (_signature != _customerName)
+        // {
+        //     Snackbar.Add("Your signature must match the full name you provided.", Severity.Warning);
+        //     return;
+        // }
+
+        // TODO: Pass card details to StripePaymentService here
+        // await StripePaymentService.ChargeAsync(_cardNumber, _expiration, _cvv, _quote, _customerName);
+
+        try
+        {
+            var creditCard = new CreditCard
+            {
+                CardHolderName = _cardholderName,
+                CardNumber = _cardNumber,
+                Expiration = _expiration,
+                CVV = _cvv,
+                AuthorizedAmount = _quote
+            };
+
+            var rawToken = Uri.UnescapeDataString(Token!);
+            var request = await LinkService.GetValidRequestAsync(rawToken);
+
+            var pdfModel = new DispatchSignedPdfModel
+            {
+                Token = Token ?? "",
+                    // SentAt = linkSentAt,
+                    // ExpiresAt = linkExpiresAt,
+                CustomerName = _customerName,
+                CustomerEmail = _customerEmail,
+                CustomerPhoneNumber = _phoneNumber,
+                FormName = request.FormName,
+                    // BoatRegistration = _boatRegistration,
+                VesselLength = _length,
+                VesselMakeModek = _makeModel,
+                GPS = _gps,
+                CaptainName = request.CaptainName,
+                CaptainSignature = request.CaptainName,
+                VesselName = _vesselName,
+                    // UnaccompaniedOrigin = _unaccompaniedOrigin,
+                    // UnaccompaniedDestination = _unaccompaniedDestination,
+                    // Underwriter = _underwriter,
+                    // Delivery = _delivery,
+                Quote = _quote,
+                    // ClaimNumber = _claimNumber,
+                CustomerAddress = _customerAddress,
+                    // PriceSignature = _priceSignature,
+
+
+                Signature = _signature,
+                    // ConsentText = _consentText,
+                    // DocumentContent = formBodyToShow,
+                    // DocumentHashSha256 = documentHash,
+                    // DocumentVersion = _documentVersion,
+                SignedAtUtc = DateTime.Now,
+
+                    // AuditEntry = auditEntry
+
+
+                    //card info
+                CardHolderName = _cardholderName,
+                CardNumber = _cardNumber,
+                Expiration = _expiration,
+                CVV = _cvv,
+                Zip = _zip,
+                CardType = _selectedCardType,
+                AuthorizedAmount = _quote
+
+
+                    //to-do: Visa/mastercard,etc and zip
+            };
+
+
+            var pdfBytes = PdfService.BuildCreditCardAuthorizationPdf(pdfModel);
+
+            await LinkService.MarkCreditCardAuthorization(
+                Uri.UnescapeDataString(Token),
+                _customerName,
+                _phoneNumber,
+                _length,
+                _makeModel,
+                _signature,
+                _gps,
+                pdfBytes, //pdfbytes temp
+                Array.Empty<byte>(), //auditTrail temp
+                creditCard
+            );
+
+            if (Token is not null)
+                LinkService.MarkUsed(Uri.UnescapeDataString(Token));
+
+            Snackbar.Add("Payment authorization submitted successfully.", Severity.Success);
+            Nav.NavigateTo("/thank-you");
+        }
+        catch (Exception ex)
+        {
+            // gotta handle this gracefully here... todo...
+        }
+    }
+}
+
+<style >
+    /* ===== Credit Card Authorization Page ===== */
+
+    /* ── Page background ── */
+    
+</style>

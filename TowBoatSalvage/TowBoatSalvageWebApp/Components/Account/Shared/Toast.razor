@@ -1,0 +1,58 @@
+﻿@using TowBoatSalvageWebApp.Services
+@inject ToastService ToastService
+
+<div class="toast-container">
+    @foreach (var toast in toasts)
+    {
+        <div class="toast @toast.Type" @key="toast.Id">
+            @toast.Message
+            <button class="close-toast" @onclick="@(() => RemoveToast(toast.Id))">x</button>
+        </div>
+    }
+</div>
+
+
+@code {
+    private List<ToastMessage> toasts = new();
+
+    protected override void OnInitialized()
+    {
+        ToastService.OnShow += ShowToast;
+    }
+
+    public async Task ShowToast(string message, string type)
+    {
+        var toast = new ToastMessage { Id = Guid.NewGuid(), Message = message, Type = type };
+        await InvokeAsync(() =>
+        {
+            toasts.Add(toast);
+            StateHasChanged();
+        });
+        //remove after 3 seconds
+        await Task.Delay(3000);
+        await InvokeAsync(() => RemoveToast(toast.Id));
+        // await RemoveToast(toast.Id);
+        }
+
+        private async Task RemoveToast(Guid id)
+        {
+            var t = toasts.FirstOrDefault(x => x.Id == id);
+            if (t != null)
+            {
+                toasts.Remove(t);
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+
+    public void Dispose()
+    {
+        ToastService.OnShow -= ShowToast;
+    }
+
+        public class ToastMessage
+        {
+            public Guid Id { get; set; }
+            public string Message { get; set; }
+            public string Type { get; set; } = "info"; // success, error, warning, info
+        }
+}

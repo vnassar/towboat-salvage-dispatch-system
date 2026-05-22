@@ -1,0 +1,1019 @@
+@page "/new-document-request"
+@using Microsoft.AspNetCore.Authorization
+@using MudBlazor
+@using Microsoft.EntityFrameworkCore
+@using TowBoatSalvageWebApp.Components.Account.Pages.Manage
+@using TowBoatSalvageWebApp.Components.Pages.NavBar
+@using TowBoatSalvageWebApp.Data
+@using TowBoatSalvageWebApp.Models
+@using TowBoatSalvageWebApp.Services
+@inject NavigationManager Nav
+@inject DispatchEmailService EmailService
+@inject MailgunEmailSender MailgunEmailSender
+@inject DispatchSigningLinkService LinkService
+@inject ISnackbar Snackbar
+@inject SalvageDbContext Db
+@inject UserState UserState
+@inject IJSRuntime JS
+@inject SalvageTableService TableService
+@attribute [Authorize]
+
+<PageTitle>New Dispatch Documents</PageTitle>
+
+<AuthorizeView>
+    <MudContainer MaxWidth="MaxWidth.False" Class="pa-1">
+        @if (!IsFromAdminDashboard)
+        {
+            <NavigationBar />
+        }
+        
+        <MudPaper Elevation="3" Class="mb-4 pa-2" Outlined="true">
+
+            <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Justify="Justify.FlexStart">
+                <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" />
+
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.h6">Dispatch Documents</MudText>
+                    <MudText Typo="Typo.body2" Class="dispatch-subtitle">
+                        Send and track document signatures
+                    </MudText>
+                    @*email link*@
+                   @*  <MudText Typo="Typo.h6"> Dev Link: @del_EmailLink</MudText> *@
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+
+        <MudTabs @bind-ActivePanelIndex="_activeTab"
+                 Rounded="true"
+                 Class="dispatch-tabs">
+            <MudTabPanel Text="New Request">
+                <MudPaper Elevation="1" Class="dispatch-card">
+
+                    @if(loading)
+                    {
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.body2">Sending Email</MudText>
+                            <MudProgressCircular Color="Color.Default" Indeterminate="true" Size="Size.Small"/>
+                        </MudStack>
+                        
+                    }
+                    else
+                    {
+                        <MudForm @ref="_form">
+
+                            <MudSelect T="DispatchFormOption"
+                                       @bind-Value="_selectedForm"
+                                       @bind-Value:after="OnSelectedFormChanged"
+                                       Label="Select Document Type"
+                                       Variant="Variant.Outlined"
+                                       Required="true">
+                                @foreach (var option in _formOptions)
+                                {
+                                    <MudSelectItem T="DispatchFormOption" Value="option">
+                                        @option.DisplayName
+                                    </MudSelectItem>
+                                }
+                            </MudSelect>
+
+                            <MudDivider DividerType="DividerType.Middle" Class="my-2" />
+
+                            @if (!isStandardFormContract)
+                            {
+                                <div class="for-captains-forms">
+
+                                    @*Request details UI/UX*@
+
+                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="my-4"> 
+                                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Medium" Color="Color.Info"/>
+                                        <MudText Typo="Typo.h6">Request Details</MudText>
+                                    </MudStack>
+
+                                    <MudDivider DividerType="DividerType.Middle" Class="my-2" />
+
+                                    <MudGrid Spacing="3">
+                                        <MudItem xs="12" sm="6">
+                                            <MudTextField @bind-Value="_customerName"
+                                                          Label="Customer Name"
+                                                          Variant="Variant.Outlined"
+                                                          Required="true" />
+                                        </MudItem>
+                                        <MudItem xs="12" sm="6">
+                                            <MudTextField @bind-Value="_customerEmail"
+                                                          Label="Customer Email Address"
+                                                          Variant="Variant.Outlined"
+                                                          Required="true" />
+                                        </MudItem>
+
+                                        @if (!IsUnaccompaniedForm)
+                                        {
+                                            <MudItem xs="12" sm="6">
+                                                <MudTextField @bind-Value="_gps"
+                                                              Label="Customer GPS Position"
+                                                              Variant="Variant.Outlined"
+                                                              Required="true" />
+                                            </MudItem>
+                                            
+                                        }
+                                        
+                                        @if (isCreditCardForm)
+                                        {
+                                            <MudItem xs="12" sm="6">
+                                                <MudTextField @bind-Value="_quote"
+                                                              Label="Quote Amount"
+                                                              Variant="Variant.Outlined"
+                                                              Required="true" />
+                                            </MudItem>
+                                        }
+
+                                        @if (IsUnaccompaniedForm)
+                                        {
+                                             <MudItem xs="12" sm="6">
+                                                <MudTextField @bind-Value="unaccompaniedOrigin"
+                                                              Label="Customer Vessel Origin"
+                                                              Variant="Variant.Outlined"
+                                                              Required="true" />
+                                             </MudItem>
+
+                                            <MudItem xs="12" sm="6">
+                                                <MudTextField @bind-Value="unaccompaniedDestination"
+                                                              Label="Customer Vessel Destination"
+                                                              Variant="Variant.Outlined"
+                                                              Required="true" />
+                                            </MudItem>
+                                        }
+                                    </MudGrid>
+                                    @*
+                        <MudTextField @bind-Value="_customerPhone"
+                                  Label="Customer Phone Number"
+                                  Variant="Variant.Outlined"
+                                  Required="true" />
+                    *@
+                                    
+
+                                    
+
+
+
+
+                                    <MudDivider DividerType="DividerType.Middle" Class="my-4" />
+
+                                    
+                                        
+                                    <MudTextField @bind-Value="_captainTypedSignature"
+                                                    Label="Captain Typed Signature"
+                                                    Variant="Variant.Outlined"
+                                                    Required="true"
+                                                    AdornmentIcon="@Icons.Material.Outlined.Edit" Adornment="Adornment.Start"/>
+                                    
+
+                                    
+                                    <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Primary"
+                                                   FullWidth="false"
+                                                   Class="mt-4"
+                                                   Size="Size.Large"
+                                                   StartIcon="@Icons.Material.Outlined.Send"
+                                                   DropShadow
+                                                   OnClick="SendFormsAsync">
+                                            Send Documents
+                                        </MudButton>
+                                    </MudStack>
+                                    
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="for-james-form">
+
+                                    <MudStepper @bind-ActiveIndex="_salvageStep"
+                                                Ripple="true"
+                                                Class="salvage-stepper">
+
+                                        <MudStep Title="Customer Info">
+                                            <MudStack Spacing="2">
+                                                <MudGrid Spacing="2">
+                                                    <MudItem xs="12" sm="6">
+                                                        <MudTextField @bind-Value="_customerName" Label="Customer Name" Variant="Variant.Outlined" Required="true"/>
+                                                    </MudItem>
+                                                    <MudItem xs="12" sm="6">
+                                                        <MudTextField @bind-Value="_customerEmail" Label="Customer Email Address" Variant="Variant.Outlined" Required="true" />
+                                                    </MudItem>
+                                                    <MudItem xs="12" sm="6">
+                                                        <MudTextField @bind-Value="_gps" Label="Customer Location (GPS)" Variant="Variant.Outlined" Required="true" />
+                                                    </MudItem>
+                                                    <MudItem xs="12" sm="6">
+                                                        <MudTextField @bind-Value="_customerAddress" Label="Customer Address" Variant="Variant.Outlined" Required="true" />
+                                                    </MudItem>
+                                                </MudGrid>
+
+                                                <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-2">
+                                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ChevronRight" OnClick="NextSalvageStep">
+                                                        Next Step
+                                                    </MudButton>
+                                                </MudStack>
+                                            </MudStack>
+                                        </MudStep>
+
+                                        <MudStep Title="Vessel Info & Quote">
+                                            <MudStack Spacing="2">
+                                                <MudGrid Spacing="2">
+                                                    <MudItem xs="12" sm="6">
+                                                        <MudTextField @bind-Value="_vesselName" Label="Customer Vessel Name (optional)" Variant="Variant.Outlined" Required="false" />
+                                                    </MudItem>
+                                                    <MudItem xs="12" sm="6">
+                                                        <MudTextField @bind-Value="_vesselLength" Label="Customer Vessel Length" Variant="Variant.Outlined" Required="true" />
+                                                    </MudItem>
+                                                    <MudItem xs="12" sm="6">
+                                                        <MudTextField @bind-Value="_vesselMake" Label="Customer Vessel Make" Variant="Variant.Outlined" Required="true" />
+                                                    </MudItem>
+                                                    <MudItem xs="12" sm="6">
+                                                        <MudTextField @bind-Value="_underwriter" Label="Customer Insurance" Variant="Variant.Outlined" Required="true" />
+                                                    </MudItem>
+                                                    <MudItem xs="12" sm="6">
+                                                        <MudTextField @bind-Value="_delivery" Label="Customer Delivery Location" Variant="Variant.Outlined" Required="true" />
+                                                    </MudItem>
+                                                    <MudItem xs="12" sm="6">
+                                                        <MudSelect T="SalvagePricingModel" @bind-Value="_selectedPricingModel" Label="Price Model" Variant="Variant.Outlined" Required="true">
+                                                            @foreach (var option in _salvagePricingModelOptions)
+                                                            {
+                                                                <MudSelectItem T="SalvagePricingModel" Value="option">@option.DisplayName</MudSelectItem>
+                                                            }
+                                                        </MudSelect>
+                                                    </MudItem>
+                                                    <MudItem xs="12" sm="6">
+                                                        <MudTextField @bind-Value="_quote" Label="Quote Amount" Variant="Variant.Outlined" Required="true" />
+                                                    </MudItem>
+                                                    <MudItem xs="12" sm="6">
+                                                        <MudTextField @bind-Value="_claimNumber" Label="Claim Number" Variant="Variant.Outlined" Required="true" />
+                                                    </MudItem>
+                                                </MudGrid>
+
+                                                <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-2">
+                                                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ChevronLeft" OnClick="PrevSalvageStep">
+                                                        Back
+                                                    </MudButton>
+                                                    <MudButton Variant="Variant.Filled"
+                                                               Color="Color.Primary"
+                                                               EndIcon="@Icons.Material.Filled.ChevronRight"
+                                                               OnClick="NextSalvageStep">
+                                                        Next Step
+                                                    </MudButton>
+                                                </MudStack>
+                                            </MudStack>
+                                        </MudStep>
+
+                                        <MudStep Title="Review & Sign">
+                                            <MudStack Spacing="2">
+                                                <MudPaper Outlined="true" Class="pa-3">
+                                                    <MudText Typo="Typo.subtitle2">Review</MudText>
+                                                    <MudText Typo="Typo.body2">Customer: @_customerName (@_customerEmail)</MudText>
+                                                    <MudText Typo="Typo.body2">GPS: @_gps</MudText>
+                                                    <MudText Typo="Typo.body2">Vessel: @_vesselName, @_vesselLength, @_vesselMake</MudText>
+                                                    <MudText Typo="Typo.body2">Insurance: @_underwriter</MudText>
+                                                    <MudText Typo="Typo.body2">Delivery: @_delivery</MudText>
+                                                    <MudText Typo="Typo.body2">Pricing: @_selectedPricingModel?.DisplayName</MudText>
+                                                    <MudText Typo="Typo.body2">Quote: @_quote</MudText>
+                                                </MudPaper>
+
+                                                <MudTextField @bind-Value="_captainTypedSignature"
+                                                              Label="Typed Signature"
+                                                              Variant="Variant.Outlined"
+                                                              Required="true"
+                                                              Adornment="Adornment.Start"
+                                                              AdornmentIcon="@Icons.Material.Outlined.Edit" />
+
+                                                <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-2">
+                                                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ChevronLeft" OnClick="PrevSalvageStep">
+                                                        Back
+                                                    </MudButton>
+                                                    <MudButton Variant="Variant.Filled"
+                                                               Color="Color.Primary"
+                                                               Size="Size.Large"
+                                                               StartIcon="@Icons.Material.Outlined.Send"
+                                                               OnClick="SendFormsAsync">
+                                                        Send Documents
+                                                    </MudButton>
+                                                </MudStack>
+                                            </MudStack>
+                                        </MudStep>
+                                    </MudStepper>
+                                </div>
+                            }
+
+
+                        </MudForm>
+                    }
+                    
+                </MudPaper>
+            </MudTabPanel>
+
+            <MudTabPanel Text="History">
+                <MudPaper Outlined="true" Class="dispatch-history-toolbar pa-3 mb-3">
+                    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                        <MudItem xs="12" md="7">
+                            <MudTextField @bind-Value="_searchTerm"
+                                          Placeholder="Search customers or forms..."
+                                          Variant="Variant.Outlined"
+                                          Dense="true"
+                                          FullWidth="true"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Filled.Search" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="5">
+                            <MudChipSet T="string" @bind-SelectedValue="_statusFilter" Filter="true" Mandatory="true" Class="dispatch-filter">
+                                <MudChip Value="All" Variant="Variant.Filled">All</MudChip>
+                                <MudChip Value="Pending" Variant="Variant.Outlined">Pending</MudChip>
+                                <MudChip Value="Signed" Variant="Variant.Outlined">Signed</MudChip>
+                            </MudChipSet>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                @if (FilteredRequests.Any())
+                {
+                    <MudGrid Spacing="2">
+                        @foreach (var request in FilteredRequests)
+                        {
+                            <MudItem xs="12" md="6">
+                                <MudPaper Outlined="true" Class="@($"dispatch-doc-card {GetCardAccentClass(request)}")">
+                                    <div class="dispatch-doc-header">
+                                        <MudText Typo="Typo.h6">@request.CustomerName</MudText>
+                                        <MudChip T="string"
+                                                 Size="Size.Small"
+                                                 Color="@(request.Status == DocumentSignatureStatus.Signed ? Color.Success : Color.Warning)"
+                                                 Variant="Variant.Filled">
+                                            @(request.Status == DocumentSignatureStatus.Signed ? "Signed" : "Pending")
+                                        </MudChip>
+                                    </div>
+
+                                    <div class="dispatch-doc-row">
+                                        <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" />
+                                        <MudText Typo="Typo.body2">@request.FormName</MudText>
+                                    </div>
+
+                                    <div class="dispatch-doc-row">
+                                        <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" />
+                                        <MudText Typo="Typo.body2">@request.CustomerEmail</MudText>
+                                        <MudChip T="string" Color="@GetEmailStatusColor(request)" Variant="Variant.Filled" Size="Size.Small">
+                                            @GetEmailStatusLabel(request)
+                                        </MudChip>
+                                    </div>
+
+                                    @{
+                                        var emailDetail = GetEmailStatusDetail(request);
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(emailDetail))
+                                    {
+                                        <div class="dispatch-item-row">
+                                            <MudText Typo="Typo.caption">@emailDetail</MudText>
+                                        </div>
+                                    }
+
+                                    <div class="dispatch-doc-row dispatch-doc-row-split">
+                                        <span><MudIcon Icon="@Icons.Material.Filled.Call" Size="Size.Small" /> @request.CustomerPhone</span>
+                                        <span><MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" /> @request.SentAtUtc.ToLocalTime().ToString("g")</span>
+                                    </div>
+
+                                    <MudDivider Class="my-2" />
+
+                                    <div class="dispatch-doc-actions">
+                                        @if (request.SignedPdf is not null)
+                                        {
+                                            <MudButton Variant="Variant.Outlined"
+                                                       StartIcon="@Icons.Material.Filled.Visibility"
+                                                       OnClick="() => ViewSignedDocument(request)">
+                                                View Document
+                                            </MudButton>
+                                        }
+                                        else
+                                        {
+                                            <MudButton Variant="Variant.Outlined"
+                                                       StartIcon="@Icons.Material.Filled.Visibility"
+                                                       OnClick="() => ViewSignedDocument(request)"
+                                                       Disabled="true">
+                                                View Document
+                                            </MudButton>
+                                        }
+
+                                        @if (request.AuditTrail is not null && isUserAdmin)
+                                        {
+                                            <MudButton Variant="Variant.Outlined"
+                                                       StartIcon="@Icons.Material.Filled.Shield"
+                                                       OnClick="() => ViewAuditTrail(request)">
+                                                Audit Trail
+                                            </MudButton>
+                                        }
+
+                                        <MudMenu Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                                            <ActivatorContent>
+                                                <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" />
+                                            </ActivatorContent>
+                                            <ChildContent>
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Info" OnClick="@(() => OpenRequestDetailsDialog(request))">
+                                                    View Full Info
+                                                </MudMenuItem>
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Email" OnClick="@(() => ResendEmailAsync(request))">
+                                                    Resend Email
+                                                </MudMenuItem>
+                                                <MudDivider />
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Delete" OnClick="@(() => DeleteDocumentAsync(request.Id))">
+                                                    Delete
+                                                </MudMenuItem>
+                                            </ChildContent>
+                                        </MudMenu>
+                                    </div>
+                                </MudPaper>
+                            </MudItem>
+
+                            <MudDialog @bind-Visible="_isRequestDetailsOpen" Options="_requestDetailsDialogOptions">
+                                <TitleContent>
+                                    <MudText Typo="Typo.h6">Dispatch Request Details</MudText>
+                                </TitleContent>
+
+                                <DialogContent>
+                                    @if (_selectedRequestForDialog is not null)
+                                    {
+                                        <MudStack Spacing="1">
+                                            <div class="dispatch-detail-row"><span class="dispatch-detail-label">Customer</span><span>@_selectedRequestForDialog.CustomerName</span></div>
+                                            <div class="dispatch-detail-row"><span class="dispatch-detail-label">Email</span><span>@_selectedRequestForDialog.CustomerEmail</span></div>
+                                            <div class="dispatch-detail-row"><span class="dispatch-detail-label">Phone</span><span>@_selectedRequestForDialog.CustomerPhone</span></div>
+                                            <div class="dispatch-detail-row"><span class="dispatch-detail-label">Form</span><span>@_selectedRequestForDialog.FormName</span></div>
+                                            <div class="dispatch-detail-row"><span class="dispatch-detail-label">Vessel</span><span>@_selectedRequestForDialog.VesselLength @_selectedRequestForDialog.VesselMakeModel</span></div>
+                                            <div class="dispatch-detail-row"><span class="dispatch-detail-label">GPS</span><span>@_selectedRequestForDialog.GPS</span></div>
+                                            <div class="dispatch-detail-row"><span class="dispatch-detail-label">Sent</span><span>@_selectedRequestForDialog.SentAtUtc.ToLocalTime().ToString("g")</span></div>
+                                            <div class="dispatch-detail-row"><span class="dispatch-detail-label">Expires</span><span>@_selectedRequestForDialog.ExpiresAtUtc.ToLocalTime().ToString("g")</span></div>
+                                            <div class="dispatch-detail-row"><span class="dispatch-detail-label">Status</span><span>@_selectedRequestForDialog.Status</span></div>
+                                            @if (_selectedRequestForDialog.FormName.Contains("Credit"))
+                                            {
+                                                <div class="dispatch-detail-row">
+                                                    <span class="dispatch-detail-label">
+                                                        Card Holder Name
+                                                    </span>
+                                                    <span>
+                                                        @_selectedRequestForDialog.CreditCard.CardHolderName
+                                                    </span>
+                                                </div>
+                                                <div class="dispatch-detail-row">
+                                                    <span class="dispatch-detail-label">
+                                                        Credit Card Number
+                                                    </span>
+                                                    <span>
+                                                        @_selectedRequestForDialog.CreditCard.CardNumber
+                                                    </span>
+                                                </div>
+                                                <div class="dispatch-detail-row">
+                                                    <span class="dispatch-detail-label">
+                                                        Expiration
+                                                    </span>
+                                                    <span>
+                                                        @_selectedRequestForDialog.CreditCard.Expiration
+                                                    </span>
+                                                </div>
+                                                <div class="dispatch-detail-row">
+                                                    <span class="dispatch-detail-label">
+                                                        CVV
+                                                    </span>
+                                                    <span>
+                                                        @_selectedRequestForDialog.CreditCard.CVV
+                                                    </span>
+                                                </div>
+                                                <div class="dispatch-detail-row">
+                                                    <span class="dispatch-detail-label">
+                                                        Authorized Amount
+                                                    </span>
+                                                    <span>
+                                                        @_selectedRequestForDialog.CreditCard.AuthorizedAmount
+                                                    </span>
+                                                </div>
+                                            }
+
+                                            @if (!string.IsNullOrWhiteSpace(_selectedRequestForDialog.Underwriter))
+                                            {
+                                                <div class="dispatch-detail-row"><span class="dispatch-detail-label">Underwriter</span><span>@_selectedRequestForDialog.Underwriter</span></div>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(_selectedRequestForDialog.Delivery))
+                                            {
+                                                <div class="dispatch-detail-row"><span class="dispatch-detail-label">Delivery</span><span>@_selectedRequestForDialog.Delivery</span></div>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(_selectedRequestForDialog.Quote))
+                                            {
+                                                <div class="dispatch-detail-row"><span class="dispatch-detail-label">Quote</span><span>@_selectedRequestForDialog.Quote</span></div>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(_selectedRequestForDialog.ClaimNumber))
+                                            {
+                                                <div class="dispatch-detail-row"><span class="dispatch-detail-label">Claim #</span><span>@_selectedRequestForDialog.ClaimNumber</span></div>
+                                            }
+                                        </MudStack>
+                                    }
+                                </DialogContent>
+
+                                <DialogActions>
+                                    <MudButton Variant="Variant.Text" OnClick="() => CloseRequestDetailsDialog(request)">Close</MudButton>
+                                </DialogActions>
+                            </MudDialog>
+                        }
+                    </MudGrid>
+
+                }
+                else
+                {
+                    <MudPaper Class="d-flex align-center justify-center pa-8" Outlined="true">
+                        <MudText Typo="Typo.subtitle2">No matching documents found.</MudText>
+                    </MudPaper>
+                }
+            </MudTabPanel>
+        </MudTabs>
+    </MudContainer>
+
+    
+</AuthorizeView>
+
+
+
+
+@code {
+    [Parameter] public bool IsFromAdminDashboard { get; set; }
+    private Task<AuthenticationState> authenticationStateTask { get; set; } = default!;
+
+    private MudForm? _form;
+
+    private bool loading = false;
+    private bool _visible = false;
+
+    private string _customerName = "";
+    private string _customerEmail = "";
+    private string _customerPhone = "";
+    private string _vesselName = "";
+    private string _vesselLength = "";
+    private string _vesselMake = "";
+    private string _underwriter = "";
+    private string _delivery = "";
+    private string _quote = "";
+    private string _claimNumber = "";
+    private string _customerAddress = "";
+
+    private string _captainEmail = "";
+    private string _captainTypedSignature = "";
+    private string _gps = "";
+    private bool IsUnaccompaniedForm => _selectedForm?.DisplayName.Contains("Unaccompanied") == true;
+    private string unaccompaniedOrigin = "";
+    private string unaccompaniedDestination = "";
+
+    private DispatchFormOption? _selectedForm;
+    private SalvagePricingModel? _selectedPricingModel;
+    private string? del_EmailLink;
+    private string value = "value";
+    private ApplicationUser? currentUser;
+    private string signUrl = "";
+
+    private int _salvageStep = 0;
+    private string _searchTerm = string.Empty;
+
+    private bool _isRequestDetailsOpen;
+    private DocumentSignatureRequest? _selectedRequestForDialog;
+    private readonly DialogOptions _requestDetailsDialogOptions = new()
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true,
+            CloseOnEscapeKey = true
+        };
+
+    private void OpenRequestDetailsDialog(DocumentSignatureRequest request)
+    {
+        _selectedRequestForDialog = request;
+        _isRequestDetailsOpen = true;
+    }
+
+    private void CloseRequestDetailsDialog(DocumentSignatureRequest request)
+    {
+        _isRequestDetailsOpen = false;
+        _selectedRequestForDialog = null;
+    }
+
+    private IEnumerable<DocumentSignatureRequest> FilteredRequests =>
+        _sentRequest
+            .Where(MatchesStatus)
+            .Where(MatchesSearch);
+
+    private bool MatchesStatus(DocumentSignatureRequest request) =>
+        _statusFilter switch
+        {
+            "Pending" => request.Status == DocumentSignatureStatus.Pending,
+            "Signed" => request.Status == DocumentSignatureStatus.Signed,
+            _ => true
+        };
+
+    private bool MatchesSearch(DocumentSignatureRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(_searchTerm)) return true;
+
+        var term = _searchTerm.Trim();
+
+        return (request.CustomerName?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (request.FormName?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (request.CustomerEmail?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (request.CustomerPhone?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private string GetCardAccentClass(DocumentSignatureRequest request) =>
+        request.Status == DocumentSignatureStatus.Signed ? "dispatch-doc-card--signed" : "dispatch-doc-card--pending";
+
+    private Task ViewRequestDetails(DocumentSignatureRequest request)
+    {
+        Snackbar.Add($"Customer: {request.CustomerName} | Email: {request.CustomerEmail} | Form: {request.FormName} | Sent: {request.SentAtUtc.ToLocalTime().ToString("g")}", Severity.Info);
+        return Task.CompletedTask;
+    }
+
+    private async Task ResendEmailAsync(DocumentSignatureRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.CustomerEmail) || string.IsNullOrWhiteSpace(request.Token))
+        {
+            Snackbar.Add("Cannot resend email: missing customer email or token.", Severity.Error);
+            return;
+        }
+
+        try
+        {
+            
+            if (request.FormName == "Credit Card Authorization Form")
+            {
+                signUrl = $"{Nav.BaseUri}credit-auth/{Uri.EscapeDataString(request.Token)}";
+            }
+            else
+            {
+                signUrl = $"{Nav.BaseUri}document-sign/{Uri.EscapeDataString(request.Token)}";
+            }
+
+            await EmailService.SendAsync(
+            to: request.CustomerEmail,
+            subject: "TowBoatUS - Required Document Signature",
+            text: $"Please sign your documents here: {signUrl}",
+            html: $"<p>Please sign your documents here:</p><p><a href=\"{signUrl}\">{signUrl}</a></p>",
+            dispatchToken: request.Token);
+
+            Snackbar.Add("Email resent successfully.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to resend email: {ex.Message}", Severity.Error);
+        }
+    }
+    private bool isStandardFormContract => _selectedForm?.DisplayName == "Standard Form Salvage Contract";
+    private bool isCreditCardForm => _selectedForm?.DisplayName == "Credit Card Authorization Form";
+
+    private bool isUserAdmin = false;
+
+    private List<DocumentSignatureRequest> _sentRequest = new();
+
+    private readonly List<SalvagePricingModel> _salvagePricingModelOptions = new()
+    {
+        new("(a) Pure Salvage"),
+        new("(b) Fixed Price"),
+        new("(c) Time and Material")
+    };
+
+    private readonly List<DispatchFormOption> _formOptions = new()
+    {
+        new("Ungrounding Liability Release"),
+        new("Credit Card Authorization Form"),
+        new("Hazardous Area Liability Release"),
+        new("Unaccompanied Agreement and Liability Release"),
+        new("Mooring Agreement and Liability Release"),
+        new("Standard Form Salvage Contract")
+    };
+
+    //private readonly List<SentDispatchRequest> _sentRequest = new();
+
+    private string _statusFilter = "All";
+    private int _activeTab = 0;
+
+    private string All = "All";
+    private string Pending = "Pending";
+    private string Signed = "Signed";
+
+    // private IEnumerable<DocumentSignatureRequest> FilteredRequests =>
+    //     _statusFilter switch
+    //     {
+    //         "Pending" => _sentRequest.Where(x => x.Status == DocumentSignatureStatus.Pending),
+    //         "Signed" => _sentRequest.Where(x => x.Status == DocumentSignatureStatus.Signed),
+    //         _ => _sentRequest
+    //     };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            GetCaptainEmail();
+
+            await LoadDocumentsAsync();
+        }
+
+    }
+
+    private async Task LoadDocumentsAsync()
+    {
+        var admin = isAdmin();
+
+        if (admin)
+        {
+            isUserAdmin = true;
+            //loading without filtering, show all documents
+            _sentRequest = await Db.DocumentSignatureRequests
+            .Include(x => x.CreditCard) //load related
+            .OrderByDescending(x => x.SentAtUtc)
+            .ToListAsync();
+        }
+        else
+        {
+            //otherwise filter by captain. captain will have a role NOT admin, i.e, Captain
+            _sentRequest = await Db.DocumentSignatureRequests
+            .Include(x => x.CreditCard) //load related
+            .Where(x => x.CaptainEmail == _captainEmail)
+            .OrderByDescending(x => x.SentAtUtc)
+            .ToListAsync();
+        }
+
+        var count = _sentRequest.Count();
+
+    }
+
+    private void OnSelectedFormChanged()
+    {
+        _salvageStep = 0;
+    }
+
+    private void NextSalvageStep()
+    {
+        if (_salvageStep == 0 && !CanMoveToVesselStep())
+        {
+            Snackbar.Add("Complete contact details before continuing.", Severity.Warning);
+            return;
+        }
+
+        if (_salvageStep == 1 && !CanMoveToReviewStep())
+        {
+            Snackbar.Add("Complete vessel and service details before continuing.", Severity.Warning);
+            return;
+        }
+
+        _salvageStep = Math.Min(_salvageStep + 1, 2);
+    }
+
+    private void PrevSalvageStep()
+    {
+        _salvageStep = Math.Max(_salvageStep - 1, 0);
+    }
+
+    private bool CanMoveToVesselStep() =>
+        !string.IsNullOrWhiteSpace(_customerName) &&
+        !string.IsNullOrWhiteSpace(_customerEmail) &&
+        !string.IsNullOrWhiteSpace(_gps) &&
+        !string.IsNullOrWhiteSpace(_customerAddress);
+
+    private bool CanMoveToReviewStep() =>
+        !string.IsNullOrWhiteSpace(_vesselLength) &&
+        !string.IsNullOrWhiteSpace(_vesselMake) &&
+        !string.IsNullOrWhiteSpace(_underwriter) &&
+        !string.IsNullOrWhiteSpace(_delivery) &&
+        !string.IsNullOrWhiteSpace(_quote) && 
+        _selectedPricingModel is not null;
+
+    private bool isAdmin()
+    {
+        if (UserState is not null)
+        {
+            var isUserAdmin = UserState.Roles!.Contains("Admin");
+            if (isUserAdmin)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private async Task SendFormsAsync()
+    {
+        if (_form is null ) return;
+
+        await _form.Validate();
+
+        if (!_form.IsValid || _selectedForm is null)
+        {
+            Snackbar.Add("Please complete all required fields.", Severity.Warning);
+            return;
+        }
+
+        ///
+        ///???
+
+        ///
+
+        loading = true;
+        await InvokeAsync(StateHasChanged);
+
+        //small delay for animation
+        await Task.Delay(1000);
+
+        try
+        {
+            var request = await LinkService.CreateRequestAsync(
+            _customerName,
+            _customerEmail,
+            _customerPhone,
+            _selectedForm.DisplayName,
+            _captainEmail,
+            _captainTypedSignature,
+            _gps,
+            TimeSpan.FromHours(24), // link good for 24 hours,
+            unaccompaniedOrigin,
+            unaccompaniedDestination,
+            _underwriter,
+            _delivery,
+            _quote,
+            _claimNumber,
+            _customerAddress,
+            _vesselLength,
+            _vesselMake,
+            _vesselName,
+            _selectedPricingModel?.DisplayName
+            );
+
+            _sentRequest.Insert(0, request);
+
+            if (_selectedForm.DisplayName == "Credit Card Authorization Form")
+            {
+                signUrl = $"{Nav.BaseUri}credit-auth/{Uri.EscapeDataString(request.Token)}";
+            }
+            else
+            {
+                signUrl = $"{Nav.BaseUri}document-sign/{Uri.EscapeDataString(request.Token)}";
+            }
+            
+            
+
+            await EmailService.SendAsync(
+                to: _customerEmail,
+                subject: "TowBoatUS - Required Document Signature",
+                text: $"Please sign your documents here: {signUrl}",
+                html: DispatchEmailTemplate.BuildSigningEmailHtml(_customerName, signUrl),
+                dispatchToken: request.Token);
+
+            del_EmailLink = signUrl;
+
+
+
+            _customerName = "";
+            _customerEmail = "";
+            _customerPhone = "";
+            _captainTypedSignature = "";
+            _gps = "";
+            _selectedForm = null;
+
+            unaccompaniedOrigin = "";
+            unaccompaniedDestination = "";
+            _underwriter = "";
+            _delivery = "";
+            _quote = "";
+            _claimNumber = "";
+            _customerAddress = "";
+            _vesselLength = "";
+            _vesselMake = "";
+            _vesselName = "";
+            _selectedPricingModel = null;
+
+            loading = false;
+            _salvageStep = 0;
+            StateHasChanged();
+        }
+        catch(Exception ex)
+        {
+            Snackbar.Add($"Failed to send documents: {ex.Message}", Severity.Error);
+        }
+
+
+    }
+
+    private async Task EmailTest()
+    {
+        var request = await MailgunEmailSender.SendTestEmail();
+        if (request.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Email Sent", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add($"Email Not sent: {request.Content?.ToString()}", Severity.Error);
+        }
+
+    }
+
+    private void GetCaptainEmail()
+    {
+        if (UserState.CurrentUser != null)
+        {
+            _captainEmail = UserState.CurrentUser.Email!;
+            return;
+        }
+        else
+        {
+            Snackbar.Add("Unable to load captain email", Severity.Error);
+        }
+    }
+
+    private async Task ViewSignedDocument(DocumentSignatureRequest request)
+    {
+        if (request.SignedPdf is null || request.SignedPdf.Length == 0)
+        {
+            Snackbar.Add("No signed PDF available.", Severity.Error);
+            return;
+        }
+
+        var base64 = Convert.ToBase64String(request.SignedPdf);
+        await JS.InvokeVoidAsync("pdfViewer.openPdfInNewTab", base64);
+    }
+
+    private async Task ViewAuditTrail(DocumentSignatureRequest request)
+    {
+        if (request.AuditTrail is null || request.AuditTrail.Length == 0)
+        {
+            Snackbar.Add("No audit trail is available.", Severity.Error);
+            return;
+        }
+
+        var base64 = Convert.ToBase64String(request.AuditTrail);
+        await JS.InvokeVoidAsync("pdfViewer.openPdfInNewTab", base64);
+    }
+
+    private async Task DeleteDocumentAsync(long id)
+    {
+        await TableService.DeleteDocumentAsync(id);
+        await LoadDocumentsAsync();
+        StateHasChanged();
+
+        Snackbar.Add($"Document deleted successfully", Severity.Success);
+    }
+
+    private string GetEmailStatusLabel(DocumentSignatureRequest request)
+    {
+        if (request.EmailFailedAtUtc is not null) return "Email Failed";
+        if (request.EmailOpenedAtUtc is not null) return "Opened";
+        if (request.EmailDeliveredAtUtc is not null) return "Delivered";
+        if (request.EmailAcceptedAtUtc is not null) return "Accepted";
+        return "Queued";
+    }
+
+    private Color GetEmailStatusColor(DocumentSignatureRequest request)
+    {
+        if (request.EmailFailedAtUtc is not null) return Color.Error;
+        if (request.EmailOpenedAtUtc is not null) return Color.Success;
+        if (request.EmailDeliveredAtUtc is not null) return Color.Info;
+        if (request.EmailAcceptedAtUtc is not null) return Color.Primary;
+        return Color.Warning;
+    }
+
+    private string? GetEmailStatusDetail(DocumentSignatureRequest request)
+    {
+        if (request.EmailFailedAtUtc is not null)
+        {
+            var failedAt = request.EmailFailedAtUtc.Value.ToLocalTime().ToString("g");
+            return string.IsNullOrWhiteSpace(request.EmailFailureReason)
+                ? $"Failed at {failedAt}"
+                : $"Failed at {failedAt}: {request.EmailFailureReason}";
+        }
+
+        if (request.EmailOpenedAtUtc is not null)
+        {
+            return $"Opened at {request.EmailOpenedAtUtc.Value.ToLocalTime():g}";
+        }
+
+        if (request.EmailDeliveredAtUtc is not null)
+        {
+            return $"Delivered at {request.EmailDeliveredAtUtc.Value.ToLocalTime():g}";
+        }
+
+        if (request.EmailAcceptedAtUtc is not null)
+        {
+            return $"Accepted by Mailgun at {request.EmailAcceptedAtUtc.Value.ToLocalTime():g}";
+        }
+
+        return null;
+    }
+
+    private sealed record DispatchFormOption(string DisplayName);
+    private sealed record SalvagePricingModel(string DisplayName);
+
+    private sealed class SentDispatchRequest 
+    {
+        public string CustomerName {get;set;    } = "";
+        public string CustomerEmail { get; set; } = "";
+        public string CustomerPhone { get; set; } = "";
+        public string FormName { get; set; } = "";
+        public string Status { get; set; } = "";
+        public DateTime SentAt { get; set; }
+    }
+}
+
+   

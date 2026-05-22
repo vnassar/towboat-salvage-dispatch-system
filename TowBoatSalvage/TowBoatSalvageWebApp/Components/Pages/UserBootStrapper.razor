@@ -1,0 +1,36 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using TowBoatSalvageWebApp.Data
+@using TowBoatSalvageWebApp.Services
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject UserState UserState
+@inject UserService UserService
+
+@code {
+    public ApplicationUser? User;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserState.CurrentUser is not null)
+        {
+            UserService.SetName(UserState.CurrentUser.Name);
+            UserService.SetUser(UserState.CurrentUser);
+            UserService.SetRoles(UserState.Roles);
+            return;
+        }
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+        if (user is null)
+            return;
+
+
+        var roles = await UserManager.GetRolesAsync(user);
+
+        UserState.CurrentUser = user;
+        UserState.Roles = roles;
+        UserService.SetName(user.Name);
+        UserService.SetUser(user);
+        UserService.SetRoles(roles);
+    }
+}

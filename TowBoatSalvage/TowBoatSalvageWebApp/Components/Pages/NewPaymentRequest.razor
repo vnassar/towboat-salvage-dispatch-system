@@ -1,0 +1,439 @@
+﻿@page "/new-payment-request"
+@using MudBlazor
+@using Microsoft.EntityFrameworkCore
+@using TowBoatSalvageWebApp.Components.Pages.NavBar
+@using TowBoatSalvageWebApp.Data
+@using TowBoatSalvageWebApp.Models
+@using TowBoatSalvageWebApp.Services
+@inject NavigationManager Nav
+@inject DispatchEmailService EmailService
+@inject StripePaymentService PaymentService
+@inject ISnackbar Snackbar
+@inject SalvageDbContext Db
+@inject UserState UserState
+
+
+<PageTitle>Payment Requests</PageTitle>
+
+<AuthorizeView>
+    <MudContainer MaxWidth="MaxWidth.False" Class="pa-1">
+        <NavigationBar />
+
+        @* ── Header ── *@
+        <MudPaper Elevation="3" Class="mb-4 pa-2" Outlined="true">
+            <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Justify="Justify.FlexStart">
+                <MudIcon Icon="@Icons.Material.Filled.Payment" Size="Size.Large" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.h6">Customer Payments</MudText>
+                    <MudText Typo="Typo.body2">Send and track Stripe payment requests</MudText>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+
+        @* ── Tabs ── *@
+        <MudTabs @bind-ActivePanelIndex="_activeTab" Rounded="true">
+
+            @* ═══════════ NEW REQUEST TAB ═══════════ *@
+            <MudTabPanel Text="New Request">
+                <MudPaper Elevation="1" Class="pa-4">
+                    @if (_loading)
+                    {
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.body2">Creating payment link…</MudText>
+                            <MudProgressCircular Color="Color.Default" Indeterminate="true" Size="Size.Small" />
+                        </MudStack>
+                    }
+                    else
+                    {
+                        <MudForm @ref="_form">
+
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="my-4">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Medium" Color="Color.Info" />
+                                <MudText Typo="Typo.h6">Customer & Payment Details</MudText>
+                            </MudStack>
+
+                            <MudDivider DividerType="DividerType.Middle" Class="my-2" />
+
+                            <MudGrid Spacing="3">
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField @bind-Value="_customerName"
+                                                  Label="Customer Name"
+                                                  Variant="Variant.Outlined"
+                                                  Required="true" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField @bind-Value="_customerEmail"
+                                                  Label="Customer Email"
+                                                  Variant="Variant.Outlined"
+                                                  Required="true" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField @bind-Value="_customerPhone"
+                                                  Label="Customer Phone (optional)"
+                                                  Variant="Variant.Outlined" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudNumericField @bind-Value="_amount"
+                                                     Label="Amount (USD)"
+                                                     Variant="Variant.Outlined"
+                                                     Required="true"
+                                                     Min="0.01m"
+                                                     Format="F2"
+                                                     Adornment="Adornment.Start"
+                                                     AdornmentText="$" />
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudTextField @bind-Value="_description"
+                                                  Label="Description"
+                                                  Variant="Variant.Outlined"
+                                                  Required="true" />
+                                </MudItem>
+                            </MudGrid>
+
+                            <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           Size="Size.Large"
+                                           StartIcon="@Icons.Material.Outlined.Send"
+                                           DropShadow
+                                           OnClick="SendPaymentRequestAsync">
+                                    Send Payment Request
+                                </MudButton>
+                            </MudStack>
+                        </MudForm>
+                    }
+                </MudPaper>
+            </MudTabPanel>
+
+            @* ═══════════ HISTORY TAB ═══════════ *@
+            <MudTabPanel Text="History">
+                <MudPaper Outlined="true" Class="pa-3 mb-3">
+                    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                        <MudItem xs="12" md="7">
+                            <MudTextField @bind-Value="_searchTerm"
+                                          Placeholder="Search customers…"
+                                          Variant="Variant.Outlined"
+                                          Dense="true"
+                                          FullWidth="true"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Filled.Search" />
+                        </MudItem>
+                        <MudItem xs="12" md="5">
+                            <MudChipSet T="string" @bind-SelectedValue="_statusFilter" Filter="true" Mandatory="true">
+                                <MudChip Value="@("All")" Variant="Variant.Filled">All</MudChip>
+                                <MudChip Value="@("Pending")" Variant="Variant.Outlined">Pending</MudChip>
+                                <MudChip Value="@("Paid")" Variant="Variant.Outlined">Paid</MudChip>
+                            </MudChipSet>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                @if (FilteredRequests.Any())
+                {
+                    <MudGrid Spacing="2">
+                        @foreach (var req in FilteredRequests)
+                        {
+                            <MudItem xs="12" md="6">
+                                <MudPaper Outlined="true"
+                                          Class="@($"dispatch-doc-card {GetCardAccentClass(req)}")">
+                                    <div class="dispatch-doc-header">
+                                        <MudText Typo="Typo.h6">@req.CustomerName</MudText>
+                                        <MudChip T="string"
+                                                 Size="Size.Small"
+                                                 Color="@(req.Status == PaymentRequestStatus.Paid ? Color.Success : Color.Warning)"
+                                                 Variant="Variant.Filled">
+                                            @req.Status.ToString()
+                                        </MudChip>
+                                    </div>
+
+                                    <div class="dispatch-doc-row">
+                                        <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Small" />
+                                        <MudText Typo="Typo.body2">@req.Amount.ToString("C")</MudText>
+                                    </div>
+
+                                    <div class="dispatch-doc-row">
+                                        <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" />
+                                        <MudText Typo="Typo.body2">@req.CustomerEmail</MudText>
+                                        <MudChip T="string" Color="@GetEmailStatusColor(req)" Variant="Variant.Filled" Size="Size.Small">
+                                            @GetEmailStatusLabel(req)
+                                        </MudChip>
+                                    </div>
+
+                                    <div class="dispatch-doc-row">
+                                        <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" />
+                                        <MudText Typo="Typo.body2">@req.Description</MudText>
+                                    </div>
+
+                                    <div class="dispatch-doc-row dispatch-doc-row-split">
+                                        <span>
+                                            <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+                                            @req.CreatedAtUtc.ToLocalTime().ToString("g")
+                                        </span>
+                                        @if (req.PaidAtUtc is not null)
+                                        {
+                                            <span>
+                                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" />
+                                                Paid @req.PaidAtUtc.Value.ToLocalTime().ToString("g")
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <MudDivider Class="my-2" />
+
+
+
+                                    <div class="dispatch-doc-actions">
+                                        @if (req.PaidAtUtc is not null)
+                                        {
+                                            <MudButton Variant="Variant.Outlined"
+                                                       StartIcon="@Icons.Material.Filled.Visibility"
+                                                       Href="@req.StripeReceiptUrl"
+                                                       Target="_blank">
+                                                View Receipt
+                                            </MudButton>
+                                        }
+                                        else
+                                        {
+                                            <MudButton Variant="Variant.Outlined"
+                                                       StartIcon="@Icons.Material.Filled.Visibility"
+                                                       
+                                                       Disabled="true">
+                                                View Receipt
+                                            </MudButton>
+                                        }
+
+                                        <MudMenu Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                                            <ActivatorContent>
+                                                <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" />
+                                            </ActivatorContent>
+                                            <ChildContent>
+                                                 <MudMenuItem Icon="@Icons.Material.Filled.Info" OnClick="@(() => OpenRequestDetailsDialog(req))">
+                                                    View Full Info
+                                                </MudMenuItem>
+                                               @*  <MudMenuItem Icon="@Icons.Material.Filled.Email" OnClick="@(() => ResendEmailAsync(request))">
+                                                    Resend Email
+                                                </MudMenuItem>  *@
+                                                <MudDivider />
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Delete" OnClick="@(() => DeletePaymentEntryAsync(req.Id))">
+                                                    Delete
+                                                </MudMenuItem>
+                                            </ChildContent>
+                                        </MudMenu>
+                                    </div>
+                                </MudPaper>
+                            </MudItem>
+
+                            <MudDialog @bind-Visible="_isRequestDetailsOpen" Options="_requestDetailsDialogOptions">
+                                <TitleContent>
+                                    <MudText Typo="Typo.h6">Payment Request Details</MudText>
+                                </TitleContent>
+
+                                <DialogContent>
+                                    @if (_selectedRequestForDialog is not null)
+                                    {
+                                        <MudStack Spacing="1">
+                                            <div class="dispatch-detail-row"><span class="dispatch-detail-label">Customer</span><span>@_selectedRequestForDialog.CustomerName</span></div>
+                                            <div class="dispatch-detail-row"><span class="dispatch-detail-label">Email</span><span>@_selectedRequestForDialog.CustomerEmail</span></div>
+                                            <div class="dispatch-detail-row"><span class="dispatch-detail-label">Phone</span><span>@_selectedRequestForDialog.CustomerPhone</span></div>
+                                            <div class="dispatch-detail-row"><span class="dispatch-detail-label">Amount </span><span>@_selectedRequestForDialog.Amount</span></div>
+                                            <div class="dispatch-detail-row"><span class="dispatch-detail-label">Payment Status </span><span>@_selectedRequestForDialog.Status</span></div>
+                                            <div class="dispatch-detail-row"><span class="dispatch-detail-label">Paid At</span><span>@_selectedRequestForDialog.PaidAtUtc</span></div>
+                                            <div class="dispatch-detail-row"><span class="dispatch-detail-label">Stripe Url</span><span>@_selectedRequestForDialog.StripePaymentLinkUrl</span></div>
+                                           
+                                        </MudStack>
+                                    }
+                                </DialogContent>
+
+                                <DialogActions>
+                                    <MudButton Variant="Variant.Text" OnClick="CloseRequestDetailsDialog">Close</MudButton>
+                                </DialogActions>
+                            </MudDialog>
+                        }
+                    </MudGrid>
+                }
+                else
+                {
+                    <MudPaper Class="d-flex align-center justify-center pa-8" Outlined="true">
+                        <MudText Typo="Typo.subtitle2">No matching payment requests found.</MudText>
+                    </MudPaper>
+                }
+            </MudTabPanel>
+        </MudTabs>
+    </MudContainer>
+</AuthorizeView>
+
+@code {
+    private MudForm? _form;
+    private bool _loading;
+    private int _activeTab;
+
+    // Form fields
+    private string _customerName = "";
+    private string _customerEmail = "";
+    private string _customerPhone = "";
+    private decimal _amount;
+    private string _description = "TowBoatUS Towing Service";
+
+    // History
+    private List<PaymentRequest> _paymentRequests = new();
+    private string _searchTerm = "";
+    private string _statusFilter = "All";
+    private string _captainEmail = "";
+    private bool _isAdmin;
+
+
+
+    private bool _isRequestDetailsOpen;
+    private PaymentRequest? _selectedRequestForDialog;
+
+    private readonly DialogOptions _requestDetailsDialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseButton = true,
+        CloseOnEscapeKey = true
+    };
+
+    private IEnumerable<PaymentRequest> FilteredRequests =>
+        _paymentRequests
+            .Where(r => _statusFilter switch
+            {
+                "Pending" => r.Status == PaymentRequestStatus.Pending,
+                "Paid" => r.Status == PaymentRequestStatus.Paid,
+                _ => true
+            })
+            .Where(r =>
+            {
+                if (string.IsNullOrWhiteSpace(_searchTerm)) return true;
+                var term = _searchTerm.Trim();
+                return (r.CustomerName?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (r.CustomerEmail?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false);
+            });
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // Load captain info from the shared UserState (same pattern as document requests)
+        if (UserState.CurrentUser is not null)
+        {
+            _captainEmail = UserState.CurrentUser.Email!;
+        }
+
+        _isAdmin = UserState.Roles?.Contains("Admin") == true;
+
+        await LoadHistoryAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadHistoryAsync()
+    {
+        _paymentRequests = await PaymentService.GetRequestsAsync(_captainEmail, _isAdmin);
+    }
+
+    private async Task SendPaymentRequestAsync()
+    {
+        if (_form is null) return;
+        await _form.Validate();
+        if (!_form.IsValid)
+        {
+            Snackbar.Add("Please complete all required fields.", Severity.Warning);
+            return;
+        }
+
+        _loading = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            // 1. Create the Stripe Payment Link and save the record
+            var request = await PaymentService.CreatePaymentRequestAsync(
+                captainEmail: _captainEmail,
+                captainName: UserState.CurrentUser?.Name ?? _captainEmail,
+                customerName: _customerName,
+                customerEmail: _customerEmail,
+                customerPhone: string.IsNullOrWhiteSpace(_customerPhone) ? null : _customerPhone,
+                amount: _amount,
+                description: _description);
+
+            // 2. Send the payment link to the customer via email
+            var htmlBody = "<h2>TowBoatUS Payment Request</h2>"
+                + $"<p>Hello {_customerName},</p>"
+                + $"<p>Your captain has requested a payment of <strong>{_amount:C}</strong> for: {_description}</p>"
+                + $"<p><a href=\"{request.StripePaymentLinkUrl}\" "
+                + "style=\"background-color:#1976d2;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;display:inline-block;\">"
+                + "Pay Now</a></p>"
+                + "<p>Thank you for choosing TowBoatUS!</p>";
+
+            await EmailService.SendAsync(
+                to: _customerEmail,
+                subject: "TowBoatUS - Payment Request",
+                text: $"Please complete your payment of {_amount:C} here: {request.StripePaymentLinkUrl}",
+                html: htmlBody,
+                dispatchToken: request.EmailTrackingToken);
+
+            // 3. Add to local list and reset form
+            _paymentRequests.Insert(0, request);
+
+            _customerName = "";
+            _customerEmail = "";
+            _customerPhone = "";
+            _amount = 0;
+            _description = "TowBoatUS Towing Service";
+
+            Snackbar.Add("Payment request sent!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to send payment request: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetCardAccentClass(PaymentRequest req) => req.Status == PaymentRequestStatus.Paid ? "dispatch-doc-card--signed" : "dispatch-doc-card--pending";
+
+    private async Task DeletePaymentEntryAsync(long id)
+    {
+        await PaymentService.DeletePaymentEntryAsync(id);
+        await LoadHistoryAsync();
+        StateHasChanged();
+
+        Snackbar.Add($"Payment entry deleted successfully", Severity.Success);
+    }
+
+    private void OpenRequestDetailsDialog(PaymentRequest request)
+    {
+        _selectedRequestForDialog = request;
+        _isRequestDetailsOpen = true;
+    }
+
+    private void CloseRequestDetailsDialog()
+    {
+        _isRequestDetailsOpen = false;
+        _selectedRequestForDialog = null;
+    }
+
+    // ── Email status helpers (same pattern as document requests) ──
+
+    private string GetEmailStatusLabel(PaymentRequest req)
+    {
+        if (req.EmailFailedAtUtc is not null) return "Email Failed";
+        if (req.EmailOpenedAtUtc is not null) return "Opened";
+        if (req.EmailDeliveredAtUtc is not null) return "Delivered";
+        if (req.EmailAcceptedAtUtc is not null) return "Accepted";
+        return "Queued";
+    }
+
+    private Color GetEmailStatusColor(PaymentRequest req)
+    {
+        if (req.EmailFailedAtUtc is not null) return Color.Error;
+        if (req.EmailOpenedAtUtc is not null) return Color.Success;
+        if (req.EmailDeliveredAtUtc is not null) return Color.Info;
+        if (req.EmailAcceptedAtUtc is not null) return Color.Primary;
+        return Color.Warning;
+    }
+}

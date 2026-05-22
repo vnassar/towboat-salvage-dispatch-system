@@ -1,0 +1,752 @@
+﻿
+@page "/test11"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using MudBlazor
+@using TowBoatSalvageWebApp.Data
+@using TowBoatSalvageWebApp.Models
+@using TowBoatSalvageWebApp.Services
+@inject SalvageTableService TableService
+@inject IJSRuntime JS
+@inject IWebHostEnvironment Env
+@inject ToastService ToastService
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+@implements IAsyncDisposable
+@attribute [Authorize]
+
+<PageTitle>Dashboard</PageTitle>
+
+<MudBreakpointProvider OnBreakpointChanged="OnBreakpointChanged" />
+
+<AuthorizeView>
+    @* ── Mobile view ── *@
+    <MudHidden Breakpoint="Breakpoint.MdAndUp">
+        <MudContainer MaxWidth="MaxWidth.Small" Class="pa-2">
+            <TowBoatSalvageWebApp.Components.Pages.NavBar.NavigationBar />
+            @* Header *@
+            <MudPaper Elevation="1" Class="pa-3">
+                <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.h6">Salvage Tracker</MudText>
+                    <MudStack Row Spacing="1">
+                        <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                                       Color="Color.Primary"
+                                       OnClick="LoadBoardAsync"
+                                       Disabled="isLoading" />
+                        
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+
+            @if (isLoading)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-2" />
+            }
+            else
+            {
+                <MudTabs Rounded="true" Class="mt-3" ApplyEffectsToContainer="true" PanelClass="pa-2">
+                    @* ── Active tab ── *@
+                    <MudTabPanel Text="@($"Active ({_activeRows.Count})")">
+                        @if (_activeRows.Count == 0)
+                        {
+                            <MudAlert Severity="Severity.Info" Class="mt-2">No active dispatches.</MudAlert>
+                        }
+                        else
+                        {
+                            @foreach (var row in _activeRows)
+                            {
+                                var status = GetStatusValue(row);
+                                var address = GetAddressFromNotes(row);
+                                var vesselSummary = GetVesselSummary(row);
+                                var phone = GetCellValue(row, "Phone Number");
+                                var fileUploadColumn = Columns?.FirstOrDefault(c => c.Type == "FileUpload");
+
+                                <MudCard Elevation="2" Class="mb-3">
+                                    <MudCardHeader>
+                                        <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%">
+                                            <MudText Typo="Typo.subtitle1">@GetCellValue(row, "Name")</MudText>
+                                            <MudChip T="string" Size="Size.Small"
+                                                     Color="@GetStatusColor(status)"
+                                                     Variant="Variant.Filled">
+                                                @GetStatusLabel(status)
+                                            </MudChip>
+                                        </MudStack>
+                                    </MudCardHeader>
+                                    <MudCardContent>
+                                        <MudStack Spacing="1">
+                                            @if (!string.IsNullOrWhiteSpace(phone))
+                                            {
+                                                <MudText Typo="Typo.body2">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" Class="mr-1" />
+                                                    <MudLink Href="@($"tel:{phone}")">@phone</MudLink>
+                                                </MudText>
+                                            }
+
+                                            @if (!string.IsNullOrWhiteSpace(address))
+                                            {
+                                                <MudText Typo="Typo.body2">
+                                                    <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" Class="mr-1" />
+                                                    <MudLink Href="@GetGoogleMapsUrl(address)" Target="_blank" Rel="noopener noreferrer">
+                                                        @address
+                                                    </MudLink>
+                                                </MudText>
+                                            }
+
+                                            @if (!string.IsNullOrWhiteSpace(vesselSummary))
+                                            {
+                                                <MudText Typo="Typo.caption" Color="Color.Dark">
+                                                    <MudIcon Icon="@Icons.Material.Filled.DirectionsBoat" Size="Size.Small" Class="mr-1" />
+                                                    @vesselSummary
+                                                </MudText>
+                                            }
+                                        </MudStack>
+
+                                        <MudDivider Class="my-2" />
+
+                                        @* Action buttons *@
+                                        <MudStack Row Wrap="Wrap.Wrap" Spacing="1">
+                                            <MudButton Variant="Variant.Text" Size="Size.Small"
+                                                       StartIcon="@Icons.Material.Filled.Notes"
+                                                       OnClick="() => OpenNotesFromCard(row)">
+                                                Notes
+                                            </MudButton>
+                                            <MudButton Variant="Variant.Text" Size="Size.Small"
+                                                       StartIcon="@Icons.Material.Filled.PhotoLibrary"
+                                                       OnClick="() => OpenPhotosFromCard(row)">
+                                                Photos
+                                            </MudButton>
+                                            @if (fileUploadColumn is not null)
+                                            {
+                                                <MudButton Variant="Variant.Text" Size="Size.Small"
+                                                           StartIcon="@Icons.Material.Filled.UploadFile"
+                                                           HtmlTag="label">
+                                                    Upload
+                                                    <InputFile OnChange="e => UploadMultipleFiles(e, row.Id, fileUploadColumn.Id)"
+                                                               accept="image/*" multiple style="display:none" />
+                                                </MudButton>
+                                            }
+                                        </MudStack>
+
+                                        @* Status transition buttons *@
+                                        <MudStack Row Wrap="Wrap.Wrap" Spacing="1" Class="mt-2">
+                                            @if (IsNewOrAssignedStatus(status))
+                                            {
+                                                <MudButton Color="Color.Warning" Variant="Variant.Filled" Size="Size.Small"
+                                                           OnClick="() => MarkRowInProgress(row)">
+                                                    Mark In Progress
+                                                </MudButton>
+                                            }
+                                            @if (!IsCompletedStatus(status))
+                                            {
+                                                <MudButton Color="Color.Success" Variant="Variant.Filled" Size="Size.Small"
+                                                           OnClick="() => MarkRowComplete(row)">
+                                                    Mark Complete
+                                                </MudButton>
+                                            }
+                                        </MudStack>
+                                    </MudCardContent>
+                                </MudCard>
+                            }
+                        }
+                    </MudTabPanel>
+
+                    @* ── Completed tab ── *@
+                    <MudTabPanel Text="@($"Completed ({FilteredCompletedRows.Count})")">
+                        <MudStack Spacing="2" Class="mb-3">
+                            <MudSelect T="string" Label="Show" Dense="true"
+                                       Value="completedFilter"
+                                       ValueChanged="OnCompletedFilterChanged">
+                                <MudSelectItem T="string" Value="@("all")">All</MudSelectItem>
+                                <MudSelectItem T="string" Value="@("30days")">Last 30 Days</MudSelectItem>
+                                <MudSelectItem T="string" Value="@("60days")">Last 60 Days</MudSelectItem>
+                                <MudSelectItem T="string" Value="@("90days")">Last 90 Days</MudSelectItem>
+                                <MudSelectItem T="string" Value="@("thisYear")">This Year</MudSelectItem>
+                                <MudSelectItem T="string" Value="@("lastYear")">Last Year</MudSelectItem>
+                            </MudSelect>
+
+                            <MudTextField T="string"
+                                          Label="Search"
+                                          Dense="true"
+                                          Immediate="true"
+                                          DebounceInterval="300"
+                                          Value="completedSearch"
+                                          ValueChanged="OnSearchChanged"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Filled.Search" />
+                        </MudStack>
+
+                        @if (FilteredCompletedRows.Count == 0)
+                        {
+                            <MudAlert Severity="Severity.Info">No completed dispatches.</MudAlert>
+                        }
+                        else
+                        {
+                            @foreach (var row in FilteredCompletedRows)
+                            {
+                                var status = GetStatusValue(row);
+                                var address = GetAddressFromNotes(row);
+                                var vesselSummary = GetVesselSummary(row);
+                                var phone = GetCellValue(row, "Phone Number");
+
+                                <MudCard Elevation="1" Class="mb-3">
+                                    <MudCardHeader>
+                                        <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%">
+                                            <MudText Typo="Typo.subtitle1">@GetCellValue(row, "Name")</MudText>
+                                            <MudChip T="string" Size="Size.Small"
+                                                     Color="@GetStatusColor(status)"
+                                                     Variant="Variant.Filled">
+                                                @GetStatusLabel(status)
+                                            </MudChip>
+                                        </MudStack>
+                                    </MudCardHeader>
+                                    <MudCardContent>
+                                        <MudStack Spacing="1">
+                                            @if (!string.IsNullOrWhiteSpace(phone))
+                                            {
+                                                <MudText Typo="Typo.body2">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" Class="mr-1" />
+                                                    <MudLink Href="@($"tel:{phone}")">@phone</MudLink>
+                                                </MudText>
+                                            }
+
+                                            @if (!string.IsNullOrWhiteSpace(address))
+                                            {
+                                                <MudText Typo="Typo.body2">
+                                                    <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" Class="mr-1" />
+                                                    <MudLink Href="@GetGoogleMapsUrl(address)" Target="_blank" Rel="noopener noreferrer">
+                                                        @address
+                                                    </MudLink>
+                                                </MudText>
+                                            }
+
+                                            @if (!string.IsNullOrWhiteSpace(vesselSummary))
+                                            {
+                                                <MudText Typo="Typo.caption" Color="Color.Dark">
+                                                    <MudIcon Icon="@Icons.Material.Filled.DirectionsBoat" Size="Size.Small" Class="mr-1" />
+                                                    @vesselSummary
+                                                </MudText>
+                                            }
+                                        </MudStack>
+
+                                        <MudDivider Class="my-2" />
+
+                                        <MudStack Row Wrap="Wrap.Wrap" Spacing="1">
+                                            <MudButton Variant="Variant.Text" Size="Size.Small"
+                                                       StartIcon="@Icons.Material.Filled.Notes"
+                                                       OnClick="() => OpenNotesFromCard(row)">
+                                                Notes
+                                            </MudButton>
+                                            <MudButton Variant="Variant.Text" Size="Size.Small"
+                                                       StartIcon="@Icons.Material.Filled.PhotoLibrary"
+                                                       OnClick="() => OpenPhotosFromCard(row)">
+                                                Photos
+                                            </MudButton>
+                                        </MudStack>
+                                    </MudCardContent>
+                                </MudCard>
+                            }
+                        }
+                    </MudTabPanel>
+                </MudTabs>
+            }
+        </MudContainer>
+    </MudHidden>
+
+    @* ── Desktop redirect ── *@
+    <MudHidden Breakpoint="Breakpoint.SmAndDown">
+        @*
+            <SalvageBoard />
+
+            <MudContainer MaxWidth="MaxWidth.Medium" Class="pa-6">
+            <MudAlert Severity="Severity.Info">
+                This page is mobile-only. Use the desktop dashboard for the full table view.
+            </MudAlert>
+            <MudButton Class="mt-3" Variant="Variant.Filled" Color="Color.Primary"
+                       Href="/salvage-tracker">
+                Open Desktop Dashboard
+            </MudButton>
+        </MudContainer>
+        *@
+        <SalvageBoard />
+    </MudHidden>
+</AuthorizeView>
+
+@*
+    
+<MudHidden Breakpoint="Breakpoint.SmAndDown">
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="pa-6">
+        <MudAlert Severity="Severity.Info">
+            This page is mobile-only. Use the desktop dashboard for the full table view.
+        </MudAlert>
+        <MudButton Class="mt-3" Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToDesktop">
+            Open Desktop Dashboard
+        </MudButton>
+    </MudContainer>
+</MudHidden>
+*@
+
+@* ── Photo gallery dialog ── *@
+<MudDialog @bind-Visible="isGalleryOpen" Options="galleryDialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Photos</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (!string.IsNullOrEmpty(selectedImage))
+        {
+            <MudImage Src="@($"/salvage_uploads/{selectedImage}")"
+                      Alt="Selected photo"
+                      ObjectFit="ObjectFit.Contain"
+                      Fluid="true"
+                      Style="max-height:50vh; width:100%;" Class="mb-3" />
+        }
+
+        <MudDivider Class="my-2" />
+
+        <MudStack Row Wrap="Wrap.Wrap" Spacing="1">
+            @foreach (var img in currentGallery)
+            {
+                <MudPaper Class="pa-1" Elevation="1">
+                    <MudStack Spacing="1" AlignItems="AlignItems.Center">
+                        <MudImage Src="@($"/salvage_uploads/{img.FileName}")"
+                                  Alt="thumb"
+                                  Style="width:80px; height:80px; object-fit:cover; cursor:pointer;"
+                                  OnClick="() => selectedImage = img.FileName" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error" Size="Size.Small"
+                                       OnClick="async () => await DeleteFileAsync(img.Id)" />
+                    </MudStack>
+                </MudPaper>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => isGalleryOpen = false">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* ── Notes edit dialog ── *@
+<MudDialog @bind-Visible="isLongTextModalOpen" Options="notesDialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Edit Notes</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField T="string" Variant="Variant.Outlined" Lines="10"
+                      @bind-Value="editingLongText"
+                      FullWidth="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="CloseLongTextModal">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveLongTextModal">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+
+
+    [Parameter] public bool IsFromAdminDashboard { get; set; }
+
+    // ── Breakpoint ──
+    private Breakpoint _breakpoint = Breakpoint.Sm;
+    private const string DesktopRoute = "/salvage-tracker";
+    private void OnBreakpointChanged(Breakpoint breakpoint) => _breakpoint = breakpoint;
+    private void NavigateToDesktop() => Nav.NavigateTo(DesktopRoute);
+
+    // ── Loading state ──
+    private bool isLoading = true;
+
+    // ── Gallery state ──
+    private bool isGalleryOpen = false;
+    private string selectedImage = string.Empty;
+    private List<SalvageFile> currentGallery = new();
+
+    // ── Data ──
+    private List<SalvageColumn> Columns = new();
+    private List<SalvageRow> Rows = new();
+
+    // ── Long text / notes modal ──
+    private bool isLongTextModalOpen = false;
+    private string editingLongText = "";
+    private SalvageRow? editingLongTextRow;
+    private SalvageColumn? editingLongTextCol;
+
+    // ── Completed filter ──
+    private string completedFilter = "90days";
+    private string completedSearch = "";
+    private List<SalvageRow> FilteredCompletedRows = new();
+
+    // ── Cached active rows (avoid recalculating on every render) ──
+    private List<SalvageRow> _activeRows = new();
+
+    // ── Dialog options ──
+    private readonly DialogOptions galleryDialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = true,
+        CloseButton = true
+    };
+
+    private readonly DialogOptions notesDialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseOnEscapeKey = true,
+        CloseButton = true
+    };
+
+    // ── Computed column helpers ──
+    private SalvageColumn? CompletedDateCol =>
+        Columns.FirstOrDefault(c => c.Type == "Date"
+            && c.Label.Trim().Equals("Completed Date", StringComparison.OrdinalIgnoreCase));
+
+    private SalvageColumn? StatusCol =>
+        Columns.FirstOrDefault(c => c.Type == "Status"
+            && c.Label.Contains("Status", StringComparison.OrdinalIgnoreCase));
+
+    // ── Lifecycle ──
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBoardAsync();
+    }
+
+    private async Task LoadBoardAsync()
+    {
+        isLoading = true;
+
+        Columns = await TableService.GetColumnAsync();
+        Rows = await TableService.GetRowsWithCellAsync();
+
+        RefreshCachedLists();
+
+        isLoading = false;
+    }
+
+    /// <summary>
+    /// Rebuilds the cached active and filtered-completed row lists from the current Rows data.
+    /// </summary>
+    private void RefreshCachedLists()
+    {
+        _activeRows = BuildActiveRows();
+        FilteredCompletedRows = BuildFilteredCompletedRows();
+    }
+
+    // ── Completed filter handlers ──
+    private void OnSearchChanged(string value)
+    {
+        completedSearch = value ?? "";
+        FilteredCompletedRows = BuildFilteredCompletedRows();
+    }
+
+    private void OnCompletedFilterChanged(string value)
+    {
+        completedFilter = value ?? "all";
+        FilteredCompletedRows = BuildFilteredCompletedRows();
+    }
+
+    // ── Row filtering (synchronous — no DB calls needed) ──
+    private List<SalvageRow> BuildActiveRows()
+    {
+        var statusCol = StatusCol;
+        if (statusCol is null) return new();
+
+        return Rows.Where(r =>
+        {
+            var cell = r.Cells.FirstOrDefault(c => c.ColumnId == statusCol.Id);
+            if (cell is null) return false;
+            var v = cell.Value;
+            return v is "Not Assigned" or "Assigned" or "In Progress" or "Salvage Done";
+        }).ToList();
+    }
+
+    private List<SalvageRow> BuildFilteredCompletedRows()
+    {
+        var now = DateTime.Now;
+
+        IEnumerable<SalvageRow> rows = Rows.Where(r =>
+        {
+            var statusCell = r.Cells.FirstOrDefault(cell => cell.ColumnId == StatusCol?.Id);
+            return statusCell is not null
+                   && (statusCell.Value == "Completed" || statusCell.Value == "Salvage Done");
+        });
+
+        // Date filter
+        if (CompletedDateCol is not null && completedFilter != "all")
+        {
+            Func<DateTime, bool> dateFilter = completedFilter switch
+            {
+                "30days" => d => d >= now.AddDays(-30),
+                "60days" => d => d >= now.AddDays(-60),
+                "90days" => d => d >= now.AddDays(-90),
+                "thisYear" => d => d.Year == now.Year,
+                "lastYear" => d => d.Year == now.Year - 1,
+                _ => _ => true,
+            };
+
+            var dateColId = CompletedDateCol.Id;
+            rows = rows.Where(r =>
+            {
+                var dateCell = r.Cells.FirstOrDefault(cell => cell.ColumnId == dateColId);
+                return dateCell is not null
+                       && DateTime.TryParse(dateCell.Value, out var dateVal)
+                       && dateFilter(dateVal);
+            });
+        }
+
+        // Text search
+        if (!string.IsNullOrWhiteSpace(completedSearch))
+        {
+            var search = completedSearch.Trim().ToLowerInvariant();
+            rows = rows.Where(r =>
+                r.Cells.Any(cell => !string.IsNullOrWhiteSpace(cell.Value)
+                                    && cell.Value.Contains(search, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        // Order by completed date descending
+        if (CompletedDateCol is not null)
+        {
+            var dateColId = CompletedDateCol.Id;
+            rows = rows.OrderByDescending(r =>
+            {
+                var dateCell = r.Cells.FirstOrDefault(cell => cell.ColumnId == dateColId);
+                return dateCell is not null && DateTime.TryParse(dateCell.Value, out var dateVal)
+                    ? dateVal
+                    : DateTime.MinValue;
+            });
+        }
+
+        return rows.ToList();
+    }
+
+    // ── Cell helpers ──
+    private string GetCellValue(SalvageRow row, string label)
+    {
+        var col = Columns.FirstOrDefault(c => c.Label.Equals(label, StringComparison.OrdinalIgnoreCase));
+        if (col is null) return string.Empty;
+        return row.Cells.FirstOrDefault(c => c.ColumnId == col.Id)?.Value ?? string.Empty;
+    }
+
+    private string GetStatusValue(SalvageRow row) => GetCellValue(row, "Status").Trim();
+
+    private string GetStatusLabel(string status) =>
+        string.IsNullOrWhiteSpace(status) ? "New" : status;
+
+    private Color GetStatusColor(string status) => status switch
+    {
+        _ when status.Contains("Not Assigned", StringComparison.OrdinalIgnoreCase) => Color.Warning,
+        _ when status.Contains("Assigned", StringComparison.OrdinalIgnoreCase) => Color.Info,
+        _ when status.Contains("In Progress", StringComparison.OrdinalIgnoreCase) => Color.Primary,
+        _ when status.Contains("Salvage Done", StringComparison.OrdinalIgnoreCase) => Color.Success,
+        _ when status.Contains("Completed", StringComparison.OrdinalIgnoreCase) => Color.Secondary,
+        _ => Color.Default,
+    };
+
+    private bool IsCompletedStatus(string status) =>
+        status.Contains("Salvage Done", StringComparison.OrdinalIgnoreCase)
+        || status.Contains("Completed", StringComparison.OrdinalIgnoreCase);
+
+    private bool IsNewOrAssignedStatus(string status) =>
+        string.IsNullOrWhiteSpace(status)
+        || status.Contains("Not Assigned", StringComparison.OrdinalIgnoreCase)
+        || status.Contains("Assigned", StringComparison.OrdinalIgnoreCase);
+
+    private string GetVesselSummary(SalvageRow row)
+    {
+        var parts = new[] { "Vessel Length", "Vessel Make", "Model" }
+            .Select(label => GetCellValue(row, label))
+            .Where(p => !string.IsNullOrWhiteSpace(p));
+        return string.Join(" ", parts);
+    }
+
+    private string GetAddressFromNotes(SalvageRow row)
+    {
+        var col = Columns.FirstOrDefault(c => c.Label.Contains("Notes", StringComparison.OrdinalIgnoreCase));
+        if (col is null) return string.Empty;
+
+        var notes = row.Cells.FirstOrDefault(c => c.ColumnId == col.Id)?.Value ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(notes)) return string.Empty;
+
+        foreach (var line in notes.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith("Customer Address:", StringComparison.OrdinalIgnoreCase))
+                return trimmed["Customer Address:".Length..].Trim();
+            if (trimmed.StartsWith("Address:", StringComparison.OrdinalIgnoreCase))
+                return trimmed["Address:".Length..].Trim();
+        }
+
+        return string.Empty;
+    }
+
+    private string GetGoogleMapsUrl(string address) =>
+        string.IsNullOrWhiteSpace(address)
+            ? string.Empty
+            : $"https://www.google.com/maps/search/?api=1&query={Uri.EscapeDataString(address)}";
+
+    // ── Row actions ──
+    private async Task AddRow()
+    {
+        if (Columns is null || !Columns.Any()) return;
+        await TableService.AddRowAsync();
+        await LoadBoardAsync();
+    }
+
+    private async Task OnStatusChanged(SalvageRow row, SalvageColumn statusCol, string newStatus)
+    {
+        await TableService.UpdateCellValueAsync(row.Id, statusCol.Id, newStatus);
+
+        if (newStatus is "Completed" or "Salvage Done")
+        {
+            var completedDateCol = Columns.FirstOrDefault(c =>
+                c.Type == "Date"
+                && c.Label.Trim().Equals("Completed Date", StringComparison.OrdinalIgnoreCase));
+
+            if (completedDateCol is not null)
+            {
+                await TableService.UpdateCellValueAsync(row.Id, completedDateCol.Id, DateTime.Now.ToString("yyyy-MM-dd"));
+            }
+
+            _ = ToastService.ShowToast("Dispatch moved to completed.", "success");
+        }
+
+        await LoadBoardAsync();
+    }
+
+    private async Task MarkRowInProgress(SalvageRow row)
+    {
+        var col = Columns.FirstOrDefault(c => c.Label == "Status");
+        if (col is not null)
+            await OnStatusChanged(row, col, "In Progress");
+    }
+
+    private async Task MarkRowComplete(SalvageRow row)
+    {
+        var col = Columns.FirstOrDefault(c => c.Label == "Status");
+        if (col is not null)
+            await OnStatusChanged(row, col, "Completed");
+    }
+
+    // ── Notes modal ──
+    private void OpenLongTextModal(SalvageRow row, SalvageColumn col)
+    {
+        var cell = row.Cells.FirstOrDefault(c => c.ColumnId == col.Id);
+        editingLongText = cell?.Value ?? "";
+        editingLongTextRow = row;
+        editingLongTextCol = col;
+        isLongTextModalOpen = true;
+    }
+
+    private void CloseLongTextModal()
+    {
+        isLongTextModalOpen = false;
+        editingLongText = "";
+        editingLongTextRow = null;
+        editingLongTextCol = null;
+    }
+
+    private async Task SaveLongTextModal()
+    {
+        if (editingLongTextRow is not null && editingLongTextCol is not null)
+        {
+            await TableService.UpdateCellValueAsync(editingLongTextRow.Id, editingLongTextCol.Id, editingLongText ?? "");
+            await LoadBoardAsync();
+        }
+        CloseLongTextModal();
+    }
+
+    private void OpenNotesFromCard(SalvageRow row)
+    {
+        var notesCol = Columns.FirstOrDefault(c => c.Label == "Notes");
+        if (notesCol is not null)
+            OpenLongTextModal(row, notesCol);
+    }
+
+    // ── Photo gallery ──
+    private void OpenGallery(List<SalvageFile> galleryFiles, string selectedFileName)
+    {
+        currentGallery = galleryFiles;
+        selectedImage = selectedFileName;
+        isGalleryOpen = true;
+    }
+
+    private void OpenPhotosFromCard(SalvageRow row)
+    {
+        var imgCol = Columns.FirstOrDefault(c => string.Equals(c.Type, "FileUpload", StringComparison.OrdinalIgnoreCase));
+        if (imgCol is null) return;
+
+        var cell = row.Cells.FirstOrDefault(c => c.ColumnId == imgCol.Id);
+        var files = cell?.Files?.ToList() ?? [];
+        if (files.Count == 0)
+        {
+            _ = ToastService.ShowToast("No photos found for this dispatch.", "info");
+            return;
+        }
+
+        OpenGallery(files, files[0].FileName);
+    }
+
+    private SalvageFile? FindFileById(int fileId)
+    {
+        foreach (var row in Rows)
+            foreach (var cell in row.Cells)
+            {
+                var file = cell.Files?.FirstOrDefault(f => f.Id == fileId);
+                if (file is not null) return file;
+            }
+        return null;
+    }
+
+    private async Task DeleteFileAsync(int fileId)
+    {
+        var file = FindFileById(fileId);
+        var fileName = file?.OriginalName ?? "Unknown";
+
+        await TableService.DeleteFileAsync(fileId);
+        await LoadBoardAsync();
+
+        _ = ToastService.ShowToast($"File: {fileName} has been deleted.", "success");
+
+        currentGallery = currentGallery.Where(f => f.Id != fileId).ToList();
+        if (currentGallery.Count == 0)
+        {
+            isGalleryOpen = false;
+        }
+        else if (!currentGallery.Any(f => f.FileName == selectedImage))
+        {
+            selectedImage = currentGallery.First().FileName;
+        }
+    }
+
+    // ── Upload ──
+    private async Task UploadMultipleFiles(InputFileChangeEventArgs e, int rowId, int colId)
+    {
+        try
+        {
+            var uploadsFolder = Path.Combine(Env.WebRootPath, "salvage_uploads");
+            Directory.CreateDirectory(uploadsFolder);
+
+            foreach (var file in e.GetMultipleFiles())
+            {
+                var fileName = $"{Guid.NewGuid()}_{file.Name}";
+                var path = Path.Combine(uploadsFolder, fileName);
+
+                await using var fs = new FileStream(path, FileMode.Create);
+                await file.OpenReadStream(1_000_000_000).CopyToAsync(fs);
+
+                await TableService.AddFileToCellAsync(rowId, colId, fileName, file.Name, "img");
+                _ = ToastService.ShowToast($"File: {file.Name} has been uploaded.", "success");
+            }
+
+            await LoadBoardAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Upload failed: {ex}");
+            _ = ToastService.ShowToast($"Upload failed: {ex.Message}", "error");
+        }
+    }
+
+    // ── Dispose ──
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+}

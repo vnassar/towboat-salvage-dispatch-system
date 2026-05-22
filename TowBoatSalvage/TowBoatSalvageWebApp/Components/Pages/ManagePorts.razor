@@ -1,0 +1,127 @@
+﻿@page "/salvages-settings"
+@attribute [Authorize(Roles = "Admin")]
+@using Microsoft.AspNetCore.Authorization
+@using TowBoatSalvageWebApp.Models
+@using TowBoatSalvageWebApp.Services
+@inject SalvageTableService TableService
+
+
+<MudPaper Elevation="1">
+    <MudContainer MaxWidth="MaxWidth.False">
+            <MudText Typo="Typo.h3">Edit Ports</MudText>
+            <MudDivider DividerType="DividerType.Middle" />
+
+
+        
+
+        <MudDivider DividerType="DividerType.Middle" />
+        <MudGrid Class="w-100">
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="newPortName" Label="Add port" Placeholder="New port name" Variant="Variant.Outlined" />
+            </MudItem>
+        </MudGrid>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddPortAsync">Add Port</MudButton>
+
+        <MudPaper Elevation="0" Class="pb-4">
+            <MudTable Elevation="3" Items="Ports" Dense="true" Class="mt-4">
+                <HeaderContent >
+                    <MudTh>Port</MudTh>
+                    <MudTh Style="width:100px;">Action</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Name</MudTd>
+                    <MudTd>
+                        <MudButton Size="Size.Medium" Variant="Variant.Filled" Color="Color.Primary"
+                                   OnClick="() => DeletePortAsync(context.Id)">Delete</MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+
+    </MudContainer>
+</MudPaper>
+
+<MudPaper Elevation="1" Class="mt-4">
+    <MudContainer MaxWidth="MaxWidth.False">
+        <MudText Typo="Typo.h3">Edit Captains</MudText>
+        <MudDivider DividerType="DividerType.Middle" />
+
+
+
+
+        <MudDivider DividerType="DividerType.Middle" />
+        <MudGrid Class="w-100">
+            <MudItem xs="12">
+                <MudTextField T="string" @bind-Value="newCaptainName" Label="Add Captain" Placeholder="New captain name" Variant="Variant.Outlined" />
+            </MudItem>
+        </MudGrid>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddCaptainAsync">Add Captain</MudButton>
+
+        <MudPaper Elevation="0" Class="pb-4">
+            <MudTable Elevation="3" Items="Captains" Dense="true" Class="mt-4">
+                <HeaderContent>
+                    <MudTh>Captain</MudTh>
+                    <MudTh Style="width:100px;">Action</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Name</MudTd>
+                    <MudTd>
+                        <MudButton Size="Size.Medium" Variant="Variant.Filled" Color="Color.Primary"
+                                   OnClick="() => DeleteCaptainAsync(context.Id)">Delete</MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+
+    </MudContainer>
+</MudPaper>
+
+@code {
+    private List<TowBoatPorts> Ports = new();
+    private string newPortName = "";
+
+    private List<TowBoatCaptains> Captains = new();
+    private string newCaptainName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Ports = await TableService.GetPortsAsync();
+        Captains = await TableService.GetCaptainsAsync();
+    }
+
+    private async Task AddPortAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newPortName)) return;
+
+        await TableService.AddPortAsync(newPortName);
+        newPortName = "";
+        Ports = await TableService.GetPortsAsync();
+        StateHasChanged();
+    }
+
+    private async Task DeletePortAsync(int id)
+    {
+        await TableService.DeletePortAsync(id);
+        Ports = await TableService.GetPortsAsync();
+        StateHasChanged();
+    }
+
+    private async Task AddCaptainAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newCaptainName)) return;
+
+        await TableService.AddCaptainAsync(newCaptainName);
+        newCaptainName = "";
+        Captains = await TableService.GetCaptainsAsync();
+        StateHasChanged();
+    }
+
+    private async Task DeleteCaptainAsync(int id)
+    {
+        await TableService.DeleteCaptainAsync(id);
+        Captains = await TableService.GetCaptainsAsync();
+        StateHasChanged();
+    }
+}

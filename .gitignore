@@ -1,0 +1,58 @@
+# Build output
+bin/
+obj/
+**/bin/
+**/obj/
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.rsuser
+*.userosscache
+*.sln.docstates
+
+# VS Code local settings
+.vscode/
+
+# Logs
+*.log
+logs/
+Logs/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Local databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Secrets / local appsettings
+**/appsettings.Local.json
+**/appsettings.*.Local.json
+**/appsettings.Production.json
+**/appsettings.json
+TowBoatSalvage/TowBoatSalvageWebApp/appsettings.json
+
+
+# Certificates / keys
+*.pfx
+*.pem
+*.key
+*.crt
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Copilot stuff
+**/copilot-instructions.md
+**/custom-instructions.md
+
+# Ignore uploaded salvage files, but keep the folder
+**/wwwroot/salvage_uploads/*
+!**/wwwroot/salvage_uploads/.gitkeep

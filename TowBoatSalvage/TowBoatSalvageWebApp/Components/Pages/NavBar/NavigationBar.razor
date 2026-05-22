@@ -1,0 +1,176 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.EntityFrameworkCore
+@using TowBoatSalvageWebApp.Data
+@using Microsoft.JSInterop
+@using TowBoatSalvageWebApp.Services
+@inject ApplicationDbContext UserDb
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject ISnackbar Snackbar
+@inject UserState UserState
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject UserService UserService
+@implements IAsyncDisposable 
+
+
+
+<div class="navbar">
+    <div class="logo">
+        <a href="/">
+            <img src="assets/TowBoatLogo.png" alt="TowBoatUS Logo" class="login-logo" />
+        </a>
+    </div>
+
+    <!-- Modern Hamburger Icon -->
+    <button class="hamburger-icon @iconClass" @onclick="ToggleMenu">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+    <!-- Mobile Menu Links -->
+    <ul class="menu-links @menuClass">
+        @if (isAdmin)
+        {
+            <li><a href="/admin-dashboard" @onclick="CloseMenu">Admin Dashboard</a></li>
+        }
+        <li>
+            <a href="/new-document-request" @onclick="CloseMenu">Request Signature</a>
+        </li>
+        <li><a href="/salvage-tracker" @onclick="CloseMenu">Salvage Tracker</a>
+        </li>
+        <li>
+            <a href="/fuel-log" @onclick="CloseMenu">New Fuel Log</a>
+        </li>
+        <li>
+            <a href="/work-order" @onclick="CloseMenu">New Work Order</a>
+        </li>
+        <li>
+
+            <form action="Account/Logout" method="post">
+                <AntiforgeryToken />
+                <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                <button type="submit" >
+                    <span class="bi bi-arrow-bar-left-nav-menu" style="font-size:18px; font-weight:500;" aria-hidden="true">Logout</span> 
+                </button>
+            </form>
+        </li>
+    </ul>
+</div>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; } = default!;
+    private ApplicationUser? currentUser;
+    private bool isAdmin;
+    private string? Name;
+
+    private HubConnection? _hubConnection;
+    private IJSObjectReference? _audioModule;
+    private bool _isRealtimeInitialized;
+    protected override async Task OnInitializedAsync()
+    {
+        isAdmin = UserState.Roles?.Contains("Admin", StringComparer.OrdinalIgnoreCase) == true
+        || UserService.GetIsAdmin();
+        Console.WriteLine($"NavigationBar: is admin = {isAdmin}.");
+        await Task.CompletedTask;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _isRealtimeInitialized) return;
+
+        _audioModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/workOrderAudio.js");
+        await InitializeRealtimeAsync();
+        _isRealtimeInitialized = true;
+    }
+
+    private async Task InitializeRealtimeAsync()
+    {
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/hubs/salvage"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection.On<int, string>("WorkOrderCreated", async (_, vesselName) =>
+        {
+            await InvokeAsync(async () =>
+            {
+                Snackbar.Add($"New work order received for {vesselName}.", Severity.Warning);
+
+                if (_audioModule is not null)
+                    await _audioModule.InvokeVoidAsync("playNewWorkOrderSound");
+            });
+        });
+
+        await _hubConnection.StartAsync();
+    }
+
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+            await _hubConnection.DisposeAsync();
+
+
+
+        if (_audioModule is not null)
+        {
+            try
+            {
+                await _audioModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // circuit already disconnected? why?
+            }
+        }
+    }
+
+
+    /*Hamburger Menu*/
+    private string menuClass = "";
+    private string iconClass = "";
+
+    /*Authentication*/
+    private string? currentUrl;
+
+    private void ToggleMenu()
+    {
+        menuClass = menuClass == "open" ? "" : "open";
+        iconClass = iconClass == "open" ? "" : "open";
+    }
+
+    private void CloseMenu()
+    {
+        menuClass = "";
+        iconClass = "";
+    }
+
+    // private async Task LoadUserAsync()
+    // {
+    //     if (UserState.CurrentUser != null)
+    //     {
+
+    //         currentUser = UserState.CurrentUser;
+    //         isAdmin = UserState.Roles?.Contains("Admin") ?? false;
+    //         UserService.SetNameAsync(currentUser.Name);
+            
+    //         return;
+    //     }
+
+
+    //     var authState = await authenticationStateTask;
+    //     currentUser = await UserManager.GetUserAsync(authState.User);
+    //     if (currentUser != null)
+    //     {
+    //         var roles = await UserManager.GetRolesAsync(currentUser);
+    //         isAdmin = roles.Contains("Developer");
+
+    //         UserState.CurrentUser = currentUser;
+    //         UserState.Roles = roles;
+    //     }
+    // }
+
+}
