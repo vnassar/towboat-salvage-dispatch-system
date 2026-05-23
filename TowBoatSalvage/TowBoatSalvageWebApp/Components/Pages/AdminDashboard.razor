@@ -12,6 +12,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IDialogService DialogService
 @inject FuelLogService FuelLogService
+@inject UserService UserService
 
 @page "/admin-dashboard"
 
@@ -373,6 +374,13 @@
 
     private async Task ConfirmAndDeleteUserAsync(ApplicationUser user)
     {
+        var isAdmin = UserService.isAdmin;
+        if (!isAdmin)
+        {
+            Snackbar.Add($"Only Admins are allowed to edit users.", Severity.Error);
+            return;
+        }
+
         if (user.Id == currentUserId)
         {
             Snackbar.Add("You can't delete your own account.", Severity.Warning);
@@ -435,6 +443,13 @@
 
     private async Task UpdateNameAsync(ApplicationUser user, string? newName)
     {
+        var isAdmin = UserService.isAdmin;
+        if (!isAdmin)
+        {
+            Snackbar.Add($"Only Admins are allowed to edit users.", Severity.Error);
+            return;
+        }
+
         var trimmed = (newName ?? string.Empty).Trim();
 
         user.Name = trimmed;
@@ -451,12 +466,17 @@
         }
 
         await LoadUsersAndRolesAsync();
-
-
     }
 
     private async Task AddRoleAsync(ApplicationUser user)
     {
+        var isAdmin = UserService.isAdmin;
+        if (!isAdmin)
+        {
+            Snackbar.Add($"Only Admins are allowed to edit users.", Severity.Error);
+            return;
+        }
+
         if (!selectedRoleByUser.TryGetValue(user.Id, out var role) || string.IsNullOrWhiteSpace(role))
         {
             Snackbar.Add("Please choose a role before adding.", Severity.Warning);
@@ -494,6 +514,13 @@
 
     private async Task RemoveRoleAsync(ApplicationUser user, string role)
     {
+        var isAdmin = UserService.isAdmin;
+        if (!isAdmin)
+        {
+            Snackbar.Add($"Only Admins are allowed to edit users.", Severity.Error);
+            return;
+        }
+
         var result = await UserManager.RemoveFromRoleAsync(user, role);
         if (result.Succeeded)
         {
@@ -584,4 +611,6 @@
 
     private string GetReportUrl(string boatName) =>
         $"/reports/fuellog/{Uri.EscapeDataString(boatName)}/{summaryYear}";
+
+   
 }
