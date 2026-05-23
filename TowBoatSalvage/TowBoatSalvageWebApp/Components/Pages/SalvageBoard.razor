@@ -865,7 +865,7 @@
                                               @bind="quickEntryInput">
                         </textarea>
                                     <div class="mt-3">
-                                        <button class="btn btn-secondary" @onclick="ParseQuickEntry">Parse</button>
+                                        <button class="btn btn-secondary" @onclick='() => ParseQuickEntry("geico")'>Parse</button>
                                     </div>
                                     @if (quickEntry != null)
                                     {
@@ -1091,7 +1091,7 @@
                     </div>
                 }
 
-                @if (isQuickEntryModalOpen)
+                @if (isQuickEntryModalOpenProgressive)
                 {
                     <div class="longtext-modal-backdrop"></div>
                     <div class="longtext-modal">
@@ -1107,7 +1107,7 @@
                                               @bind="quickEntryInput">
                             </textarea>
                                     <div class="mt-3">
-                                        <button class="btn btn-secondary" @onclick="ParseQuickEntry">Parse</button>
+                                        <button class="btn btn-secondary" @onclick='() => ParseQuickEntry("progressive")'>Parse</button>
                                     </div>
                                     @if (quickEntry != null)
                                     {
@@ -1148,7 +1148,8 @@
                 {
                     <div id="row-menu-@activeRowMenuId" class="row-menu-dropdown"
                          style="position:fixed; left:@rowMenuPosition.LeftPx; top:@rowMenuPosition.TopPx; z-index:100010;">
-                        <button class="dropdown-item" @onclick="() => OpenQuickEntryModal(activeRowMenuId.Value)">Quick Entry</button>
+                        <button class="dropdown-item" @onclick='() => OpenQuickEntryModal(activeRowMenuId.Value, "geico")'>Quick Entry Geico</button>
+                        <button class="dropdown-item" @onclick='() => OpenQuickEntryModal(activeRowMenuId.Value, "progressive")'>Quick Entry Progressive</button>
                         <button class="dropdown-item text-danger" @onclick="() => DeleteRow(activeRowMenuId.Value)">Delete Row</button>
                     </div>
                 }
@@ -1166,7 +1167,7 @@
 
 
 @code {
-    [Parameter] public bool IsFromAdminDashboard { get; set; }
+        [Parameter] public bool IsFromAdminDashboard { get; set; }
 
     private HubConnection? hubConnection;
     private bool hubStarted;
@@ -1202,6 +1203,7 @@
     private SalvageRow? editingLongTextRow;
     private SalvageColumn? editingLongTextCol;
     private bool isQuickEntryModalOpen = false;
+    private bool isQuickEntryModalOpenProgressive = false;
     private int quickEntryRowId;
     private string quickEntryInput = "";
     private QuickEntry? quickEntry;
@@ -1841,10 +1843,17 @@
         CloseLongTextModal(); // close modal after saving and go back to main view
     }
 
-    private void OpenQuickEntryModal(int rowId)
+    private void OpenQuickEntryModal(int rowId, string company)
     {
-        isQuickEntryModalOpen = true;
-        quickEntryRowId = rowId; // what row are we in
+        if (company == "geico")
+        {
+            isQuickEntryModalOpen = true;
+        }
+        else
+        {
+            isQuickEntryModalOpenProgressive = true;
+        }
+        quickEntryRowId = rowId; 
         quickEntryInput = "";
         quickEntry = null;
 
@@ -1853,38 +1862,74 @@
 
     private void CloseQuickEntryModal()
     {
-        isQuickEntryModalOpen = false; //close modal    
-        quickEntryInput = ""; // clear this
-        quickEntry = null; //clear this
+        isQuickEntryModalOpen = false;
+        isQuickEntryModalOpenProgressive = false;
+        quickEntryInput = ""; 
+        quickEntry = null; 
 
     }
 
-    private void ParseQuickEntry()
+    private void ParseQuickEntry(string company)
     {
         quickEntry = new QuickEntry(); 
         var lines = quickEntryInput.Split('\n').Select(line => line.Trim()).Where(line => !string.IsNullOrWhiteSpace(line));
 
-        foreach (var line in lines) // handle each lin
+        if (company == "geico")
         {
-            if (line.StartsWith("Date:", StringComparison.OrdinalIgnoreCase))
-                quickEntry.Date = line.Substring("Date:".Length).Trim();
-            if (line.StartsWith("Dispatch Number:", StringComparison.OrdinalIgnoreCase))
-                quickEntry.DispatchNumber = line.Substring("Dispatch Number:".Length).Trim();
-            if (line.StartsWith("Incident number:", StringComparison.OrdinalIgnoreCase))
-                quickEntry.IncidentNumber = line.Substring("Incident number:".Length).Trim();
-            if (line.StartsWith("Make:", StringComparison.OrdinalIgnoreCase))
-                quickEntry.Make = line.Substring("Make:".Length).Trim();
-            if (line.StartsWith("Model:", StringComparison.OrdinalIgnoreCase))
-                quickEntry.Model = line.Substring("Model:".Length).Trim();
-            if (line.StartsWith("Length:", StringComparison.OrdinalIgnoreCase))
-                quickEntry.Length = line.Substring("Length:".Length).Trim();
-            if (line.StartsWith("Customer number:", StringComparison.OrdinalIgnoreCase))
-                quickEntry.CustomerNumber = line.Substring("Customer number:".Length).Trim();
-            if (line.StartsWith("Customer Name:", StringComparison.OrdinalIgnoreCase))
-                quickEntry.CustomerName = line.Substring("Customer Name:".Length).Trim();
-            if (line.StartsWith("Best number to contact:", StringComparison.OrdinalIgnoreCase))
-                quickEntry.PhoneNumber = line.Substring("Best number to contact:".Length).Trim();
+            foreach (var line in lines) // handle each lin
+            {
+                if (line.StartsWith("Date:", StringComparison.OrdinalIgnoreCase))
+                    quickEntry.Date = line.Substring("Date:".Length).Trim();
+                if (line.StartsWith("Dispatch Number:", StringComparison.OrdinalIgnoreCase))
+                    quickEntry.DispatchNumber = line.Substring("Dispatch Number:".Length).Trim();
+                if (line.StartsWith("Incident number:", StringComparison.OrdinalIgnoreCase))
+                    quickEntry.IncidentNumber = line.Substring("Incident number:".Length).Trim();
+                if (line.StartsWith("Make:", StringComparison.OrdinalIgnoreCase))
+                    quickEntry.Make = line.Substring("Make:".Length).Trim();
+                if (line.StartsWith("Model:", StringComparison.OrdinalIgnoreCase))
+                    quickEntry.Model = line.Substring("Model:".Length).Trim();
+                if (line.StartsWith("Length:", StringComparison.OrdinalIgnoreCase))
+                    quickEntry.Length = line.Substring("Length:".Length).Trim();
+                if (line.StartsWith("Customer number:", StringComparison.OrdinalIgnoreCase))
+                    quickEntry.CustomerNumber = line.Substring("Customer number:".Length).Trim();
+                if (line.StartsWith("Customer Name:", StringComparison.OrdinalIgnoreCase))
+                    quickEntry.CustomerName = line.Substring("Customer Name:".Length).Trim();
+                if (line.StartsWith("Best number to contact:", StringComparison.OrdinalIgnoreCase))
+                    quickEntry.PhoneNumber = line.Substring("Best number to contact:".Length).Trim();
+            }
         }
+        else
+        {
+            //for progressive
+            foreach (var line in lines)
+            {
+                if (line.StartsWith("Date of Loss & Timezone:", StringComparison.OrdinalIgnoreCase))
+                    quickEntry.Date = line.Substring("Date of Loss & Timezone:".Length).Trim();
+                if (line.StartsWith("Carrier Claim #:", StringComparison.OrdinalIgnoreCase))
+                    quickEntry.DispatchNumber = line.Substring("Carrier Claim #:".Length).Trim();
+                if (line.StartsWith("Carrier Claim #:", StringComparison.OrdinalIgnoreCase))
+                    quickEntry.IncidentNumber = line.Substring("Carrier Claim #:".Length).Trim();
+                if (line.StartsWith("Year/Make/Model:", StringComparison.OrdinalIgnoreCase))
+                {
+                    var yearMakeModelString = line.Substring("Year/Make/Model:".Length).Trim();
+                    string[] parts = yearMakeModelString.Split("/");
+                    if (parts.Length >= 3)
+                    {
+                        quickEntry.Make = parts[1].Trim();
+                        quickEntry.Model = parts[2].Trim();
+                    }
+                }
+                if (line.StartsWith("Length:", StringComparison.OrdinalIgnoreCase))
+                    quickEntry.Length = line.Substring("Length:".Length).Trim();
+                if (line.StartsWith("Phone:", StringComparison.OrdinalIgnoreCase))
+                    quickEntry.CustomerNumber = line.Substring("Phone:".Length).Trim();
+                if (line.StartsWith("Name:", StringComparison.OrdinalIgnoreCase))
+                    quickEntry.CustomerName = line.Substring("Name:".Length).Trim();
+                if (line.StartsWith("Phone:", StringComparison.OrdinalIgnoreCase))
+                    quickEntry.PhoneNumber = line.Substring("Phone:".Length).Trim();
+            }
+        }
+
     }
 
     private async Task ApplyQuickEntryToRow()
@@ -1932,6 +1977,10 @@
                     {
                         await TableService.UpdateCellValueAsync(row.Id, col.Id, quickEntry.PhoneNumber, _salvageHubConnectionId);
                     }
+                    if (col.Label.Contains("Notes", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(quickEntryInput))
+                    {
+                        await TableService.UpdateCellValueAsync(row.Id, col.Id, quickEntryInput, _salvageHubConnectionId);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1939,10 +1988,8 @@
 
                     _ = ToastService.ShowToast($"Error from parser: {ex}", "error");
                 }
-                //when done then...
                 await LoadBoardAsync();
             }
-            // then..
             CloseQuickEntryModal();
             _ = ToastService.ShowToast($"Data added to cells successfully", "success");
         }
