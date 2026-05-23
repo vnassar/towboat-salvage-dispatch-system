@@ -181,7 +181,17 @@
 
 
                 <MudPaper Elevation="3" Class="pa-4 mt-4">
-                    <MudText Typo="Typo.h6" Class="mb-2">Fuel Usage Summary (@summaryYear)</MudText>
+                    <MudStack Row="true" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.h6" Class="mb-2">Fuel Usage Summary (@summaryYear)</MudText>
+                            <MudSelect T="string" Label="Select Year" Variant="Variant.Outlined" @bind-Value="yearSelected" @bind-Value:after="ChangeSelectedyear" FullWidth="false"
+                             FitContent="true" ShrinkLabel>
+                                @foreach (var year in years)
+                                {
+                                    <MudSelectItem Value="@year">@year</MudSelectItem>
+                                }
+                            </MudSelect>
+                    </MudStack>
+                    
 
                     <MudTable Items="fuelSummary" Dense="true">
                         <HeaderContent>
@@ -338,6 +348,12 @@
 
     private List<BoatFuelSummary> fuelSummary = new();
     private int summaryYear = DateTime.Today.Year;
+    private List<string> years = new List<string>
+    {
+        "This year",
+        "Last year"
+    };
+    private string? yearSelected = "This year";
     private List<FuelLogEntry> fuelEntries = new();
     private List<string> fuelBoats = new();
     private string? selectedBoatFilter = null;
@@ -612,5 +628,19 @@
     private string GetReportUrl(string boatName) =>
         $"/reports/fuellog/{Uri.EscapeDataString(boatName)}/{summaryYear}";
 
-   
+    private async Task ChangeSelectedyear()
+    {
+        if (yearSelected == "Last year")
+        {
+            summaryYear = DateTime.Today.Year - 1;
+            fuelSummary = await FuelLogService.GetFuelSummaryAsync(summaryYear);
+            await LoadFuelEntriesAsync();
+        }
+        else
+        {
+            summaryYear = DateTime.Today.Year;
+            fuelSummary = await FuelLogService.GetFuelSummaryAsync(summaryYear);
+            await LoadFuelEntriesAsync();
+        }
+    }
 }

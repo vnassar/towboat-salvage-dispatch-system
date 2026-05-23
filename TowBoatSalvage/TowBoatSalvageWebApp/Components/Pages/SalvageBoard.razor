@@ -1413,8 +1413,7 @@
             rows = rows.OrderByDescending(r =>
             {
                 var datecell = r.Cells.FirstOrDefault(cell => cell.ColumnId == CompletedDateCol.Id);
-                if (datecell != null && DateTime.TryParse(datecell.Value, out var dateVal))
-                    return dateVal;
+                if (datecell != null && DateTime.TryParse(datecell.Value, out var dateVal)) return dateVal;
                 return DateTime.MinValue;
             });
         }
