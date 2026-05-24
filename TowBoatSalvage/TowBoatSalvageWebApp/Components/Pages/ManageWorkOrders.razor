@@ -144,9 +144,9 @@
                                 <td>
                                     @if (_editingRows.Contains(order.Id))
                                     {
-                                        <MudTextField T="string" @bind-Value="@GetOrCreateEditModel(order).Engine1Hours" Variant="Variant.Filled" Dense="true" />
+                                        <MudTextField T="string" @bind-Value="@GetOrCreateEditModel(order).Engine1Hours" Variant="Variant.Text" Dense="true" />
                                         <span class="engine-sep">|</span>
-                                        <MudTextField T="string" @bind-Value="@GetOrCreateEditModel(order).Engine2Hours" Variant="Variant.Filled"  />
+                                        <MudTextField T="string" @bind-Value="@GetOrCreateEditModel(order).Engine2Hours" Variant="Variant.Text" />
 
                                     }
                                     else
