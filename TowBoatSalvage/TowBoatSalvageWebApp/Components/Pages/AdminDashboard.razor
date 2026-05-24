@@ -5,6 +5,7 @@
 @using TowBoatSalvageWebApp.Data
 @using TowBoatSalvageWebApp.Services
 @using static TowBoatSalvageWebApp.Services.FuelLogService
+@using MudBlazor
 @inject ApplicationDbContext UserDb
 @inject ISnackbar Snackbar
 @inject UserManager<ApplicationUser> UserManager
@@ -214,6 +215,41 @@
                         </RowTemplate>
                     </MudTable>
                 </MudPaper>
+
+                <div class="fuel-chart">
+                        <MudPaper Class="doc-section-component-container">
+                            <MudChart ChartType="ChartType.StackedBar" ChartSeries="@_series" LegendPosition="@_legendPosition" ChartLabels="@_xAxisLabels" Width="100%" Height="500px" ChartOptions="_axisChartOptions"
+                                      @bind-SelectedIndex="_index" MatchBoundsToSize="_matchBoundsToSize" />
+                        </MudPaper>
+
+                        @* <MudGrid>
+                            <MudItem md="6" xs="12">
+                                <MudText Typo="Typo.body1" Class="py-3">Selected: @(_index < 0 ? "None" : _series[_index].Name)</MudText>
+                            </MudItem>
+                            <MudItem md="6" xs="12">
+                                <MudCheckBox @bind-Value="_matchBoundsToSize" Color="Color.Primary" Label="MatchBoundsToSize"></MudCheckBox>
+                            </MudItem>
+                            <MudItem md="6" xs="12">
+                                <MudSlider @bind-Value="_axisChartOptions.XAxisLabelRotation" Min="0" Max="90" Step="15">XAxis Label Rotation</MudSlider>
+                            </MudItem>
+                            <MudItem md="6" xs="12">
+                                <MudSlider @bind-Value="_axisChartOptions.BarWidthRatio" Min="0.1" Max="1" Step="0.1">Bar Width Ratio</MudSlider>
+                            </MudItem>
+                            <MudItem md="6" xs="12">
+                                <MudStack>
+                                    <MudText Typo="Typo.body1">Legend Position</MudText>
+                                    <MudRadioGroup T="Position" @bind-Value="_legendPosition">
+                                        <MudRadio Value="@(Position.Bottom)" Color="Color.Primary">Bottom</MudRadio>
+                                        <MudRadio Value="@(Position.Top)" Color="Color.Primary">Top</MudRadio>
+                                        <MudRadio Value="@(Position.Left)" Color="Color.Primary">Left</MudRadio>
+                                        <MudRadio Value="@(Position.Right)" Color="Color.Primary">Right</MudRadio>
+                                        <MudRadio Value="@(Position.Start)" Color="Color.Primary">Start</MudRadio>
+                                        <MudRadio Value="@(Position.End)" Color="Color.Primary">End</MudRadio>
+                                    </MudRadioGroup>
+                                </MudStack>
+                            </MudItem>
+                        </MudGrid> *@
+                </div>
                 break;
 
             case AdminSection.Users:
@@ -363,6 +399,48 @@
 
     private string? ErrorMsg = "Nothing";
 
+    //Stacked Bar Chart From Mudblzaor documentation
+    private int _index = -1; //default value cannot be 0 -> first selectedindex is 0.
+    private bool _matchBoundsToSize = true;
+    private StackedBarChartOptions _axisChartOptions = new()
+    {
+        BarWidthRatio = 0.5,
+        XAxisTitle = "Months",
+        YAxisTitle = "Fuel",
+    };
+
+    private Position _legendPosition = Position.Bottom;
+
+    private List<ChartSeries<double>> _series = new List<ChartSeries<double>>();
+    private string[] _xAxisLabels = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+    //end
+
+    private async Task LoadFuelChartData()
+    {
+        _series.Clear();
+
+        var allEntries = await FuelLogService.GetEntriesAsync(string.Empty);
+        var entries = allEntries.Where(f => f.LogDate.Year == summaryYear);
+        var grouped = entries.GroupBy(f => f.BoatName).ToList();
+
+        foreach (var group in grouped)
+        {
+            var monthlyData = new double[12];
+
+            foreach (var entry in group)
+            {
+                int monthIndex = entry.LogDate.Month - 1;
+                monthlyData[monthIndex] += (double)(entry.Fuel1 + entry.Fuel2 + entry.GasCans);
+            }
+
+            _series.Add(new ChartSeries<double>()
+            {
+                Name = group.Key,
+                Data = monthlyData
+            });
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await LoadUsersAndRolesAsync();
@@ -372,8 +450,9 @@
         fuelSummary = await FuelLogService.GetFuelSummaryAsync(summaryYear);
 
         fuelBoats = await FuelLogService.GetBoatNamesAsync();
-        //await LoadFuelEntriesAsync();
-        fuelEntries = new();
+        await LoadFuelEntriesAsync();
+        //fuelEntries = new();
+        await LoadFuelChartData();
     }
 
     private void SetSection(AdminSection section)
@@ -403,7 +482,7 @@
             return;
         }
 
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             title: "Delete User",
             markupMessage: (MarkupString)$"Are you sure you want to delete <b>{user.Email}</b>?",
             yesText: "Delete",
@@ -611,7 +690,7 @@
 
     private async Task ConfirmDeleteFuelEntryAsync(int id)
     {
-        var confirm = await DialogService.ShowMessageBox(
+        var confirm = await DialogService.ShowMessageBoxAsync(
             title: "Delete Fuel Entry",
             markupMessage: (MarkupString)"Are you sure you want to delete this fuel entry?",
             yesText: "Delete",
@@ -642,5 +721,7 @@
             fuelSummary = await FuelLogService.GetFuelSummaryAsync(summaryYear);
             await LoadFuelEntriesAsync();
         }
+
+        await LoadFuelChartData();
     }
 }
