@@ -44,7 +44,7 @@ namespace TowBoatSalvageWebApp.Services
                 .ToListAsync();
         }
 
-        public async Task <List<FuelLogEntry>> GetEntriesAsync(string? boatName)
+        public async Task <List<FuelLogEntry>> GetEntriesAsync(string? boatName, int year)
         {
             var query = _db.FuelLogs.AsNoTracking();
 
@@ -52,6 +52,7 @@ namespace TowBoatSalvageWebApp.Services
             {
                 query = query.Where(f => f.BoatName == boatName);
             }
+            query = query.Where(f => f.LogDate.Year == year);
 
             return await query
                 .OrderByDescending(f => f.LogDate)

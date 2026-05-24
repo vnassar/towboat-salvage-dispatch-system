@@ -419,8 +419,7 @@
     {
         _series.Clear();
 
-        var allEntries = await FuelLogService.GetEntriesAsync(string.Empty);
-        var entries = allEntries.Where(f => f.LogDate.Year == summaryYear);
+        var entries = await FuelLogService.GetEntriesAsync(string.Empty, summaryYear);
         var grouped = entries.GroupBy(f => f.BoatName).ToList();
 
         foreach (var group in grouped)
@@ -650,7 +649,7 @@
             return;
         }
 
-        fuelEntries = await FuelLogService.GetEntriesAsync(selectedBoatFilter);
+        fuelEntries = await FuelLogService.GetEntriesAsync(selectedBoatFilter, summaryYear);
     }
 
     private void StartEdit(FuelLogEntry entry)
