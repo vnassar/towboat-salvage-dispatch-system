@@ -415,30 +415,7 @@
     private string[] _xAxisLabels = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
     //end
 
-    private async Task LoadFuelChartData()
-    {
-        _series.Clear();
 
-        var entries = await FuelLogService.GetEntriesAsync(string.Empty, summaryYear);
-        var grouped = entries.GroupBy(f => f.BoatName).ToList();
-
-        foreach (var group in grouped)
-        {
-            var monthlyData = new double[12];
-
-            foreach (var entry in group)
-            {
-                int monthIndex = entry.LogDate.Month - 1;
-                monthlyData[monthIndex] += (double)(entry.Fuel1 + entry.Fuel2 + entry.GasCans);
-            }
-
-            _series.Add(new ChartSeries<double>()
-            {
-                Name = group.Key,
-                Data = monthlyData
-            });
-        }
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -451,7 +428,7 @@
         fuelBoats = await FuelLogService.GetBoatNamesAsync();
         await LoadFuelEntriesAsync();
         //fuelEntries = new();
-        await LoadFuelChartData();
+        await BuildFuelChartDataAsync();
     }
 
     private void SetSection(AdminSection section)
@@ -721,6 +698,31 @@
             await LoadFuelEntriesAsync();
         }
 
-        await LoadFuelChartData();
+        await BuildFuelChartDataAsync();
+    }
+    private async Task BuildFuelChartDataAsync()
+    {
+        _series.Clear();
+
+        var entries = await FuelLogService.GetEntriesAsync(string.Empty, summaryYear);
+        if (entries is null) return;
+        var grouped = entries.GroupBy(f => f.BoatName).ToList();
+
+        foreach (var group in grouped)
+        {
+            var currentMonth = DateTime.Today.Month;
+            var monthlyData = new double[currentMonth];
+
+            foreach (var entry in group)
+            {
+                int monthIndex = entry.LogDate.Month - 1;
+                monthlyData[monthIndex] += (double)(entry.Fuel1 + entry.Fuel2 + entry.GasCans);
+            }
+            _series.Add(new ChartSeries<double>()
+            {
+                Name = group.Key,
+                Data = monthlyData
+            });
+        }
     }
 }
