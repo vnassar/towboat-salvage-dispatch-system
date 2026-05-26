@@ -1,0 +1,65 @@
+﻿@using TowBoatSalvageWebApp.Services
+@using static TowBoatSalvageWebApp.Services.FuelLogService
+@inject FuelLogService FuelLogService
+
+<MudPaper Class="annual-card" Elevation="0">
+    <div class="annual-header">
+        <h2>Annual Summary</h2>
+        <p>2026 Year to Date</p>
+    </div>
+
+    <div class="boat-summary-list">
+        @foreach (var boat in fuelSummary)
+        {
+            @* <div class="boat-summary-row">
+                <div>
+                    <div class="boat-name">@boat.BoatName</div>
+                    <div class="boat-entries">@boat.TotalEntries</div>
+                </div>
+
+                <div class="boat-gallons">
+                    <div>@boat.TotalFuel.ToString()</div>
+                    <span>gal</span>
+                </div>
+            </div>
+            <div class="download-summary">
+                <MudIconButton Icon="@Icons.Material.Outlined.Download" Size="Size.Small" Href="@GetReportUrl(boat.BoatName)" />
+            </div> *@
+            <MudPaper Elevation="0" >
+                <MudStack Row="true" Spacing="0" Justify="Justify.SpaceBetween" Class="mt-2">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.subtitle2">@boat.BoatName</MudText>
+                    </MudStack>
+                    
+                    <MudStack Row="true" Spacing="0">
+                        <MudText Typo="Typo.caption">@boat.TotalFuel.ToString() gal</MudText>
+                        <MudIconButton Icon="@Icons.Material.Outlined.Download" Size="Size.Small" Href="@GetReportUrl(boat.BoatName)" Target="_blank"/>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+            
+        }
+    </div>
+</MudPaper>
+
+@code {
+
+    private List<BoatFuelSummary> fuelSummary = new();
+    [Parameter] public int SummaryYear { get; set; } 
+    
+
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        fuelSummary = await FuelLogService.GetFuelSummaryAsync(SummaryYear);
+    }
+
+    
+
+    //private record BoatFuelSummary(string name, int Entries, int Gallons);
+
+    private string GetReportUrl(string boatName) =>
+        $"/reports/fuellog/{Uri.EscapeDataString(boatName)}/{SummaryYear}";
+}

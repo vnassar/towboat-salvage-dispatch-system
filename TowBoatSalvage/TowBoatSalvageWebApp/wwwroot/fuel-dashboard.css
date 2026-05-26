@@ -1,0 +1,348 @@
+﻿.fuel-page {
+    min-height: 100vh;
+    background: #f6f9fc;
+    padding: 24px 40px;
+    color: #071d35;
+}
+
+/* Header */
+
+.fuel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+}
+
+    .fuel-header h1 {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .fuel-header p {
+        margin: 6px 0 0;
+        color: #547091;
+        font-size: 14px;
+    }
+
+.new-entry-button {
+    background-color: #009f94 !important;
+    color: white !important;
+    border-radius: 8px !important;
+    text-transform: none !important;
+    font-weight: 700 !important;
+    padding: 8px 18px !important;
+}
+
+/* Top stat cards */
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: white;
+    border: 1px solid #dce5ef;
+    border-radius: 10px;
+    padding: 22px;
+    min-height: 136px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.stat-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.stat-title {
+    color: #1b3958;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.stat-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #e9fbf8;
+    color: #009f94;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-value-row {
+    margin-top: 24px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    color: #06172b;
+}
+
+.stat-unit {
+    color: #466382;
+    font-size: 13px;
+}
+
+.stat-subtext {
+    margin-top: 6px;
+    color: #466382;
+    font-size: 13px;
+}
+
+    .stat-subtext.positive {
+        color: #008f66;
+        font-weight: 600;
+    }
+
+/* Main dashboard layout */
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) 342px;
+    gap: 20px;
+}
+
+.chart-card,
+.annual-card {
+    background: white;
+    border: 1px solid #dce5ef;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+/* Chart */
+
+.chart-card {
+    padding: 22px;
+}
+
+.chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+    .chart-header h2,
+    .annual-header h2 {
+        font-size: 16px;
+        margin: 0;
+        font-weight: 700;
+    }
+
+.year-select {
+    width: 86px;
+}
+
+.chart-area {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    height: 310px;
+}
+
+.y-axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-right: 8px;
+    color: #59728f;
+    font-size: 11px;
+}
+
+.bars-area {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    align-items: end;
+    gap: 12px;
+    border-bottom: 1px solid #e1e9f2;
+    background-image: repeating-linear-gradient( to bottom, #e6edf5 0, #e6edf5 1px, transparent 1px, transparent 71px );
+}
+
+.bar-column {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.stacked-bar {
+    width: 42px;
+    height: 285px;
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-start;
+    overflow: hidden;
+    border-radius: 4px 4px 0 0;
+}
+
+.bar-segment {
+    width: 100%;
+}
+
+.month-label {
+    height: 24px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: #5f7895;
+}
+
+/* Legend */
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #2d4e70;
+}
+
+.legend-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+}
+
+/* Boat colors */
+
+.sea-hawk {
+    background: #11998e;
+}
+
+.blue-marlin {
+    background: #0ea5c6;
+}
+
+.northern-star {
+    background: #2f68e8;
+}
+
+.reef-runner {
+    background: #1393ad;
+}
+
+.tide-walker {
+    background: #465b72;
+}
+
+.cape-drifter {
+    background: #2fc9ba;
+}
+
+/* Annual summary */
+
+.annual-card {
+    padding: 22px 16px;
+}
+
+.annual-header {
+    padding: 0 4px 18px;
+}
+
+    .annual-header p {
+        margin: 6px 0 0;
+        font-size: 12px;
+        color: #547091;
+    }
+
+.boat-summary-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.boat-summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 4px;
+    border-bottom: 1px solid #edf2f7;
+}
+
+    .boat-summary-row:last-child {
+        border-bottom: none;
+    }
+
+.boat-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #071d35;
+}
+
+.boat-entries {
+    margin-top: 3px;
+    font-size: 11px;
+    color: #6a82a0;
+}
+
+.boat-gallons {
+    text-align: right;
+    font-weight: 800;
+    color: #071d35;
+}
+
+    .boat-gallons span {
+        display: block;
+        margin-top: 2px;
+        font-size: 11px;
+        font-weight: 400;
+        color: #547091;
+    }
+
+/* Responsive */
+
+@media (max-width: 1100px) {
+    .stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 700px) {
+    .fuel-page {
+        padding: 18px;
+    }
+
+    .fuel-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .stat-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .bars-area {
+        gap: 6px;
+        overflow-x: auto;
+    }
+
+    .stacked-bar {
+        width: 28px;
+    }
+}

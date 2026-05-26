@@ -20,20 +20,20 @@
 <PageTitle>Admin Dashboard</PageTitle>
 
 
-@attribute [Authorize(Roles ="Admin")]
+@attribute [Authorize(Roles = "Admin")]
 
 
 
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-0">
     <NavigationBar />
-    
+
     <MudDrawerContainer>
         <MudDrawer Open="true"
-                    Variant="DrawerVariant.Persistent"
-                    Elevation="1"
-                    Width="169px"
-                    Class="pa-2">
-            
+                   Variant="DrawerVariant.Persistent"
+                   Elevation="1"
+                   Width="169px"
+                   Class="pa-2">
+
             <MudText Typo="Typo.subtitle2" Class="mb-2">Admin Sections</MudText>
             @*
                 <MudList T="string" Dense="true">
@@ -43,11 +43,11 @@
             </MudList>
             *@
             <MudTabs @bind-ActivePanelIndex="ActiveTabIndex" Position="Position.Left" Rounded="true" Border="true">
-                
+
                 <MudTabPanel>
                     <TabContent>
                         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%;">
-                            <MudText >Fuel</MudText>
+                            <MudText>Fuel</MudText>
                             <MudIcon Icon="@Icons.Material.Filled.ArrowRight" Size="Size.Small" />
                         </MudStack>
                     </TabContent>
@@ -94,129 +94,132 @@
                 </MudTabPanel>
             </MudTabs>
         </MudDrawer>
-    
-    
-    <MudMainContent Class="pa-1" >
 
-        
 
-        @switch (activeSection)
-        {
-            case AdminSection.Fuel:
-                <MudPaper Elevation="3" Class="pa-4 mt-4">
-                    <MudText Typo="Typo.h6" Class="mb-2">Fuel Log Entries</MudText>
+        <MudMainContent Class="pa-1">
 
-                    <MudSelect T="string" Label="Filter by boat" Variant="Variant.Outlined" @bind-Value="selectedBoatFilter" @bind-Value:after="async () => await LoadFuelEntriesAsync()">
-                        <MudSelectItem Value="string.Empty">All Boats</MudSelectItem>
-                        @foreach (var boat in fuelBoats)
-                        {
-                            <MudSelectItem Value="@boat">@boat</MudSelectItem>
-                        }
-                    </MudSelect>
 
-                    <MudTable Items="fuelEntries" Dense="true" Class="mt-4">
-                        <HeaderContent>
-                            <MudTh>Date</MudTh>
-                            <MudTh>Boat</MudTh>
-                            <MudTh>Crew</MudTh>
-                            <MudTh>Engine1</MudTh>
-                            <MudTh>Engine2</MudTh>
-                            <MudTh>Fuel1</MudTh>
-                            <MudTh>Fuel2</MudTh>
-                            <MudTh>Fuel-Gas Cans</MudTh>
-                            <MudTh>Actions</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            @if (editDraft?.ID == context.ID)
+
+            @switch (activeSection)
+            {
+                case AdminSection.Fuel:
+
+                    <TowBoatSalvageWebApp.Components.Pages.Fuel.FuelDashboard ChartSeries="_series"/>    
+
+                    <MudPaper Elevation="3" Class="pa-4 mt-4">
+                        <MudText Typo="Typo.h6" Class="mb-2">Fuel Log Entries</MudText>
+
+                        <MudSelect T="string" Label="Filter by boat" Variant="Variant.Outlined" @bind-Value="selectedBoatFilter" @bind-Value:after="async () => await LoadFuelEntriesAsync()">
+                            <MudSelectItem Value="string.Empty">All Boats</MudSelectItem>
+                            @foreach (var boat in fuelBoats)
                             {
-                                <MudTd>@context.LogDate.ToShortDateString()</MudTd>
-                                <MudTd>@context.BoatName</MudTd>
-                                <MudTd>@context.CrewMember</MudTd>
-
-                                <MudTd>
-                                    <MudNumericField T="decimal" Variant="Variant.Outlined" Dense="true"
-                                                        @bind-Value="editDraft.Engine1Hours" />
-                                </MudTd>
-                                <MudTd>
-                                    <MudNumericField T="decimal" Variant="Variant.Outlined" Dense="true"
-                                                        @bind-Value="editDraft.Engine2Hours" />
-                                </MudTd>
-                                <MudTd>
-                                    <MudNumericField T="decimal" Variant="Variant.Outlined" Dense="true"
-                                                        @bind-Value="editDraft.Fuel1" />
-                                </MudTd>
-                                <MudTd>
-                                    <MudNumericField T="decimal" Variant="Variant.Outlined" Dense="true"
-                                                        @bind-Value="editDraft.Fuel2" />
-                                </MudTd>
-                                <MudTd>
-                                    <MudNumericField T="decimal" Variant="Variant.Outlined" Dense="true"
-                                                        @bind-Value="editDraft.GasCans" />
-                                </MudTd>
-                                <MudTd>
-                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
-                                                OnClick="SaveEditAsync">Save</MudButton>
-                                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="CancelEdit">Cancel</MudButton>
-                                </MudTd>
+                                <MudSelectItem Value="@boat">@boat</MudSelectItem>
                             }
-                            else
-                            {
-                                <MudTd>@context.LogDate.ToShortDateString()</MudTd>
-                                <MudTd>@context.BoatName</MudTd>
-                                <MudTd>@context.CrewMember</MudTd>
-                                <MudTd>@context.Engine1Hours</MudTd>
-                                <MudTd>@context.Engine2Hours</MudTd>
-                                <MudTd>@context.Fuel1</MudTd>
-                                <MudTd>@context.Fuel2</MudTd>
-                                <MudTd>@context.GasCans</MudTd>
-                                <MudTd>
-                                    <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="() => StartEdit(context)">Edit</MudButton>
-                                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error"
-                                                OnClick="() => ConfirmDeleteFuelEntryAsync(context.ID)">Delete</MudButton>
-                                </MudTd>
-                            }
-                        </RowTemplate>
-                    </MudTable>
-                </MudPaper>
+                        </MudSelect>
+
+                        <MudTable Items="fuelEntries" Dense="true" Class="mt-4" Hover="true" OnCommitEditClick="@(() => SaveEditAsync())">
+                            <HeaderContent>
+                                <MudTh>Date</MudTh>
+                                <MudTh>Boat</MudTh>
+                                <MudTh>Crew</MudTh>
+                                <MudTh>Engine1</MudTh>
+                                <MudTh>Engine2</MudTh>
+                                <MudTh>Fuel1</MudTh>
+                                <MudTh>Fuel2</MudTh>
+                                <MudTh>Fuel-Gas Cans</MudTh>
+                                <MudTh>Actions</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                @if (editDraft?.ID == context.ID)
+                                {
+                                    <MudTd>@context.LogDate.ToShortDateString()</MudTd>
+                                    <MudTd>@context.BoatName</MudTd>
+                                    <MudTd>@context.CrewMember</MudTd>
+
+                                    <MudTd>
+                                        <MudNumericField T="decimal" Variant="Variant.Outlined" Dense="true"
+                                                         @bind-Value="editDraft.Engine1Hours" />
+                                    </MudTd>
+                                    <MudTd>
+                                        <MudNumericField T="decimal" Variant="Variant.Outlined" Dense="true"
+                                                         @bind-Value="editDraft.Engine2Hours" />
+                                    </MudTd>
+                                    <MudTd>
+                                        <MudNumericField T="decimal" Variant="Variant.Outlined" Dense="true"
+                                                         @bind-Value="editDraft.Fuel1" />
+                                    </MudTd>
+                                    <MudTd>
+                                        <MudNumericField T="decimal" Variant="Variant.Outlined" Dense="true"
+                                                         @bind-Value="editDraft.Fuel2" />
+                                    </MudTd>
+                                    <MudTd>
+                                        <MudNumericField T="decimal" Variant="Variant.Outlined" Dense="true"
+                                                         @bind-Value="editDraft.GasCans" />
+                                    </MudTd>
+                                    <MudTd>
+                                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                                   OnClick="SaveEditAsync">Save</MudButton>
+                                        <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="CancelEdit">Cancel</MudButton>
+                                    </MudTd>
+                                }
+                                else
+                                {
+                                    <MudTd>@context.LogDate.ToShortDateString()</MudTd>
+                                    <MudTd DataLabel="Name">@context.BoatName</MudTd>
+                                    <MudTd DataLabel="Crew">@context.CrewMember</MudTd>
+                                    <MudTd DataLabel="Engine1">@context.Engine1Hours</MudTd>
+                                    <MudTd DataLabel="Engine2">@context.Engine2Hours</MudTd>
+                                    <MudTd DataLabel="Fuel1">@context.Fuel1</MudTd>
+                                    <MudTd DataLabel="Fuel2">@context.Fuel2</MudTd>
+                                    <MudTd DataLabel="Fuel-Gas Cans">@context.GasCans</MudTd>
+                                    <MudTd>
+                                        <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="() => StartEdit(context)">Edit</MudButton>
+                                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error"
+                                                   OnClick="() => ConfirmDeleteFuelEntryAsync(context.ID)">Delete</MudButton>
+                                    </MudTd>
+                                }
+                            </RowTemplate>
+                        </MudTable>
+                    </MudPaper>
 
 
 
-                <MudPaper Elevation="3" Class="pa-4 mt-4">
-                    <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudPaper Elevation="3" Class="pa-4 mt-4">
+                        <MudStack Row="true" AlignItems="AlignItems.Center">
                             <MudText Typo="Typo.h6" Class="mb-2">Fuel Usage Summary (@summaryYear)</MudText>
                             <MudSelect T="string" Label="Select Year" Variant="Variant.Outlined" @bind-Value="yearSelected" @bind-Value:after="ChangeSelectedyear" FullWidth="false"
-                             FitContent="true" ShrinkLabel>
+                                       FitContent="true" ShrinkLabel>
                                 @foreach (var year in years)
                                 {
                                     <MudSelectItem Value="@year">@year</MudSelectItem>
                                 }
                             </MudSelect>
-                    </MudStack>
-                    
+                        </MudStack>
 
-                    <MudTable Items="fuelSummary" Dense="true">
-                        <HeaderContent>
-                            <MudTh>Boat</MudTh>
-                            <MudTh>Total Fuel (gal, includes gas cans)</MudTh>
-                            <MudTh>Entries</MudTh>
-                            <MudTh>Download Log</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd>@context.BoatName</MudTd>
-                            <MudTd>@context.TotalFuel</MudTd>
-                            <MudTd>@context.TotalEntries</MudTd>
-                            <MudTd>
-                                <MudButton Size="Size.Small"
-                                            Variant="Variant.Outlined"
-                                            Href="@GetReportUrl(context.BoatName)">
-                                    Download
-                                </MudButton>
-                            </MudTd>
-                        </RowTemplate>
-                    </MudTable>
-                </MudPaper>
 
-                <div class="fuel-chart">
+                        <MudTable Items="fuelSummary" Dense="true">
+                            <HeaderContent>
+                                <MudTh>Boat</MudTh>
+                                <MudTh>Total Fuel (gal, includes gas cans)</MudTh>
+                                <MudTh>Entries</MudTh>
+                                <MudTh>Download Log</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>@context.BoatName</MudTd>
+                                <MudTd>@context.TotalFuel</MudTd>
+                                <MudTd>@context.TotalEntries</MudTd>
+                                <MudTd>
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Outlined"
+                                               Href="@GetReportUrl(context.BoatName)">
+                                        Download
+                                    </MudButton>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </MudPaper>
+
+                    <div class="fuel-chart">
                         <MudPaper Class="doc-section-component-container">
                             <MudChart ChartType="ChartType.StackedBar" ChartSeries="@_series" LegendPosition="@_legendPosition" ChartLabels="@_xAxisLabels" Width="100%" Height="500px" ChartOptions="_axisChartOptions"
                                       @bind-SelectedIndex="_index" MatchBoundsToSize="_matchBoundsToSize" />
@@ -249,100 +252,100 @@
                                 </MudStack>
                             </MudItem>
                         </MudGrid> *@
-                </div>
-                break;
+                    </div>
+                    break;
 
-            case AdminSection.Users:
-                <MudPaper Elevation="1" Class="pa-4 mb-4">
-                    <MudText Typo="Typo.h6" Class="mb-2">Registered Users</MudText>
+                case AdminSection.Users:
+                    <MudPaper Elevation="1" Class="pa-4 mb-4">
+                        <MudText Typo="Typo.h6" Class="mb-2">Registered Users</MudText>
 
-                    <MudTable Items="users" Hover="true" Dense="true">
-                        <HeaderContent>
-                            <MudTh>Name</MudTh>
-                            <MudTh>Email</MudTh>
-                            <MudTh>Roles</MudTh>
-                            <MudTh>Assign Role</MudTh>
-                            <MudTh>Delete</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd DataLabel="Name">
-                                <MudTextField T="string"
-                                              Value="@context.Name"
-                                              ValueChanged="(async (string? newValue) => await UpdateNameAsync(context, newValue))">
-                            </MudTextField>
-                            </MudTd>
-                            <MudTd DataLabel="Email">@context.Email</MudTd>
-                            <MudTd DataLabel="Roles">
-                                <MudChipSet T="string">
-                                    @if (userRoles.TryGetValue(context.Id, out var roles))
-                                    {
-                                        @foreach (var role in roles)
+                        <MudTable Items="users" Hover="true" Dense="true">
+                            <HeaderContent>
+                                <MudTh>Name</MudTh>
+                                <MudTh>Email</MudTh>
+                                <MudTh>Roles</MudTh>
+                                <MudTh>Assign Role</MudTh>
+                                <MudTh>Delete</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Name">
+                                    <MudTextField T="string"
+                                                  Value="@context.Name"
+                                                  ValueChanged="(async (string? newValue) => await UpdateNameAsync(context, newValue))">
+                                    </MudTextField>
+                                </MudTd>
+                                <MudTd DataLabel="Email">@context.Email</MudTd>
+                                <MudTd DataLabel="Roles">
+                                    <MudChipSet T="string">
+                                        @if (userRoles.TryGetValue(context.Id, out var roles))
                                         {
-                                            <MudChip T="string" Closeable="true" OnClose="async () => await RemoveRoleAsync(context, role)">
-                                                @role
-                                            </MudChip>
+                                            @foreach (var role in roles)
+                                            {
+                                                <MudChip T="string" Closeable="true" OnClose="async () => await RemoveRoleAsync(context, role)">
+                                                    @role
+                                                </MudChip>
+                                            }
                                         }
-                                    }
-                                    else
-                                    {
-                                        <MudChip T="string" Disabled="true">None</MudChip>
-                                    }
-                                </MudChipSet>
-                            </MudTd>
-                            <MudTd DataLabel="Assign Role">
-                                <MudSelect T="string" Dense="true" Label="Select role"
-                                            @bind-Value="selectedRoleByUser[context.Id]">
-                                    @foreach (var role in availableRoles)
-                                    {
-                                        <MudSelectItem Value="@role">@role</MudSelectItem>
-                                    }
-                                </MudSelect>
-                                <MudButton Class="mt-2" Variant="Variant.Filled" Style="background-color: rgb(42, 42, 248); color: white;"
-                                            OnClick="async () => await AddRoleAsync(context)">
-                                    Add Role
-                                </MudButton>
-                            </MudTd>
+                                        else
+                                        {
+                                            <MudChip T="string" Disabled="true">None</MudChip>
+                                        }
+                                    </MudChipSet>
+                                </MudTd>
+                                <MudTd DataLabel="Assign Role">
+                                    <MudSelect T="string" Dense="true" Label="Select role"
+                                               @bind-Value="selectedRoleByUser[context.Id]">
+                                        @foreach (var role in availableRoles)
+                                        {
+                                            <MudSelectItem Value="@role">@role</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                    <MudButton Class="mt-2" Variant="Variant.Filled" Style="background-color: rgb(42, 42, 248); color: white;"
+                                               OnClick="async () => await AddRoleAsync(context)">
+                                        Add Role
+                                    </MudButton>
+                                </MudTd>
 
-                            <MudTd DataLabel="Delete">
-                                <MudButton Variant="Variant.Outlined" Color="Color.Error" Disabled="@(context.Id == currentUserId)" OnClick="async () => await ConfirmAndDeleteUserAsync(context)">Delete</MudButton>
-                            </MudTd>
-                        </RowTemplate>
-                    </MudTable>
-                </MudPaper>
-                break;
+                                <MudTd DataLabel="Delete">
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Disabled="@(context.Id == currentUserId)" OnClick="async () => await ConfirmAndDeleteUserAsync(context)">Delete</MudButton>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </MudPaper>
+                    break;
 
-            case AdminSection.Disk:
-                <MudPaper Elevation="1" Class="pa-4">
-                    <MudText Typo="Typo.h6" Class="mb-2">Server Disk Space</MudText>
-                    @if (totalGb > 0)
-                    {
-                        <MudText><b>Total Space:</b> @($"{totalGb:0.00}") GB</MudText>
-                        <MudText><b>Free Space:</b> @($"{freeGb:0.00}") GB</MudText>
-                    }
-                    else
-                    {
-                        <MudText Color="Color.Warning">Could not determine disk space.</MudText>
-                    }
-                </MudPaper>
-                break;
+                case AdminSection.Disk:
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-2">Server Disk Space</MudText>
+                        @if (totalGb > 0)
+                        {
+                            <MudText><b>Total Space:</b> @($"{totalGb:0.00}") GB</MudText>
+                            <MudText><b>Free Space:</b> @($"{freeGb:0.00}") GB</MudText>
+                        }
+                        else
+                        {
+                            <MudText Color="Color.Warning">Could not determine disk space.</MudText>
+                        }
+                    </MudPaper>
+                    break;
 
-            case AdminSection.SalvageBoard:
-                <MudPaper Elevation="0" Class="ml-n5 mr-n5">
-                        <SalvageBoard IsFromAdminDashboard="true"/>
-                </MudPaper>
-                break;
+                case AdminSection.SalvageBoard:
+                    <MudPaper Elevation="0" Class="ml-n5 mr-n5">
+                        <SalvageBoard IsFromAdminDashboard="true" />
+                    </MudPaper>
+                    break;
 
-            case AdminSection.Documents:
-                <MudPaper Elevation="0" Class="ml-n5 mr-n5">
-                    <NewDocumentRequest IsFromAdminDashboard="true" />
-                </MudPaper>
-                break;
+                case AdminSection.Documents:
+                    <MudPaper Elevation="0" Class="ml-n5 mr-n5">
+                        <NewDocumentRequest IsFromAdminDashboard="true" />
+                    </MudPaper>
+                    break;
 
-            case AdminSection.WorkOrders:
-                <MudPaper Elevation="0" Class="ml-n5 mr-n5">
-                    <ManageWorkOrders IsFromAdminDashboard="true" />
-                </MudPaper>
-                break;
+                case AdminSection.WorkOrders:
+                    <MudPaper Elevation="0" Class="ml-n5 mr-n5">
+                        <ManageWorkOrders IsFromAdminDashboard="true" />
+                    </MudPaper>
+                    break;
 
             }
         </MudMainContent>
@@ -526,7 +529,7 @@
         user.Name = trimmed;
 
         var result = await UserManager.UpdateAsync(user);
-        if (result.Succeeded) 
+        if (result.Succeeded)
         {
             Snackbar.Add($"Updated name for {user.Email}.", Severity.Success);
         }

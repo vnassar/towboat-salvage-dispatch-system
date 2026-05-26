@@ -1,0 +1,31 @@
+﻿<MudPaper Class="stat-card" Elevation="0">
+    <div class="stat-card-header">
+        <span class="stat-title">@Title</span>
+
+        <div class="stat-icon">
+            <MudIcon Icon="@Icon" Size="Size.Small" />
+        </div>
+    </div>
+
+    <div class="stat-value-row">
+        <span class="stat-value">@MainValue</span>
+
+        @if (!string.IsNullOrWhiteSpace(Unit))
+        {
+            <span class="stat-unit">@Unit</span>
+        }
+    </div>
+
+    <div class="stat-subtext @(IsPositive ? "positive" : "")">
+        @SubText
+    </div>
+</MudPaper>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string MainValue { get; set; } = string.Empty;
+    [Parameter] public string Unit { get; set; } = string.Empty;
+    [Parameter] public string SubText { get; set; } = string.Empty;
+    [Parameter] public string Icon { get; set; } = string.Empty;
+    [Parameter] public bool IsPositive { get; set; }
+}

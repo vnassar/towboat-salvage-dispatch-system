@@ -1,0 +1,9 @@
+﻿<div class="legend-item">
+    <span class="legend-dot @CssClass"></span>
+    <span>@Text</span>
+</div>
+
+@code {
+    [Parameter] public string CssClass { get; set; } = string.Empty;
+    [Parameter] public string Text { get; set; } = string.Empty;
+}

@@ -1,0 +1,168 @@
+﻿<MudPaper Class="chart-card" Elevation="0">
+    <div class="chart-header">
+        <h2>Fuel Usage by Boat</h2>
+
+        <MudSelect T="int" Value="SelectedYear" Dense="true" Variant="Variant.Outlined" Class="year-select">
+            <MudSelectItem Value="2026">2026</MudSelectItem>
+            <MudSelectItem Value="2025">2025</MudSelectItem>
+            <MudSelectItem Value="2024">2024</MudSelectItem>
+        </MudSelect>
+    </div>
+
+    <div class="chart-area">
+        <div class="y-axis">
+            <span>1200</span>
+            <span>900</span>
+            <span>600</span>
+            <span>300</span>
+            <span>0</span>
+        </div>
+
+        <div class="bars-area">
+            @foreach (var month in MonthlyData)
+            {
+                <div class="bar-column">
+                    <div class="stacked-bar">
+                        @foreach (var segment in month.Segments)
+                        {
+                            <div class="bar-segment @segment.CssClass"
+                                 style="height:@segment.HeightPercent%">
+                            </div>
+                        }
+                    </div>
+
+                    <div class="month-label">@month.Month</div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="chart-legend">
+        <LegendDot CssClass="sea-hawk" Text="Sea Hawk" />
+        <LegendDot CssClass="blue-marlin" Text="Blue Marlin" />
+        <LegendDot CssClass="northern-star" Text="Northern Star" />
+        <LegendDot CssClass="reef-runner" Text="Reef Runner" />
+        <LegendDot CssClass="tide-walker" Text="Tide Walker" />
+        <LegendDot CssClass="cape-drifter" Text="Cape Drifter" />
+    </div>
+</MudPaper>
+
+@code {
+    private int SelectedYear { get; set; } = 2026;
+
+    private List<MonthFuelData> MonthlyData = new()
+    {
+        new("Jan", new()
+        {
+            new("sea-hawk", 10),
+            new("blue-marlin", 12),
+            new("northern-star", 14),
+            new("reef-runner", 10),
+            new("tide-walker", 6),
+            new("cape-drifter", 9),
+        }),
+        new("Feb", new()
+        {
+            new("sea-hawk", 11),
+            new("blue-marlin", 10),
+            new("northern-star", 13),
+            new("reef-runner", 10),
+            new("tide-walker", 6),
+            new("cape-drifter", 10),
+        }),
+        new("Mar", new()
+        {
+            new("sea-hawk", 12),
+            new("blue-marlin", 10),
+            new("northern-star", 13),
+            new("reef-runner", 9),
+            new("tide-walker", 7),
+            new("cape-drifter", 11),
+        }),
+        new("Apr", new()
+        {
+            new("sea-hawk", 13),
+            new("blue-marlin", 10),
+            new("northern-star", 15),
+            new("reef-runner", 12),
+            new("tide-walker", 8),
+            new("cape-drifter", 12),
+        }),
+        new("May", new()
+        {
+            new("sea-hawk", 15),
+            new("blue-marlin", 11),
+            new("northern-star", 17),
+            new("reef-runner", 13),
+            new("tide-walker", 9),
+            new("cape-drifter", 14),
+        }),
+        new("Jun", new()
+        {
+            new("sea-hawk", 18),
+            new("blue-marlin", 13),
+            new("northern-star", 18),
+            new("reef-runner", 15),
+            new("tide-walker", 10),
+            new("cape-drifter", 14),
+        }),
+        new("Jul", new()
+        {
+            new("sea-hawk", 20),
+            new("blue-marlin", 15),
+            new("northern-star", 20),
+            new("reef-runner", 16),
+            new("tide-walker", 11),
+            new("cape-drifter", 17),
+        }),
+        new("Aug", new()
+        {
+            new("sea-hawk", 19),
+            new("blue-marlin", 14),
+            new("northern-star", 19),
+            new("reef-runner", 15),
+            new("tide-walker", 10),
+            new("cape-drifter", 16),
+        }),
+        new("Sep", new()
+        {
+            new("sea-hawk", 16),
+            new("blue-marlin", 12),
+            new("northern-star", 17),
+            new("reef-runner", 14),
+            new("tide-walker", 10),
+            new("cape-drifter", 14),
+        }),
+        new("Oct", new()
+        {
+            new("sea-hawk", 13),
+            new("blue-marlin", 11),
+            new("northern-star", 15),
+            new("reef-runner", 12),
+            new("tide-walker", 8),
+            new("cape-drifter", 13),
+        }),
+        new("Nov", new()
+        {
+            new("sea-hawk", 12),
+            new("blue-marlin", 10),
+            new("northern-star", 12),
+            new("reef-runner", 10),
+            new("tide-walker", 7),
+            new("cape-drifter", 11),
+        }),
+        new("Dec", new()
+        {
+            new("sea-hawk", 11),
+            new("blue-marlin", 9),
+            new("northern-star", 11),
+            new("reef-runner", 9),
+            new("tide-walker", 6),
+            new("cape-drifter", 11),
+        }),
+    };
+
+    private record MonthFuelData(string Month, List<FuelSegment> Segments);
+
+    private record FuelSegment(string CssClass, int HeightPercent);
+}
