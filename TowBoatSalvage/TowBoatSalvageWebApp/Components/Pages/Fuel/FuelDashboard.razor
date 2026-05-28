@@ -26,9 +26,8 @@
 
         <MudButton Variant="Variant.Filled"
                    StartIcon="@Icons.Material.Filled.Add"
-                   Class="new-entry-button">
-
-
+                   Class="new-entry-button"
+                    OnClick="NewEntry">
             New Entry
         </MudButton>
     </div>
@@ -50,7 +49,7 @@
         <FuelStatCard Title="Entries This Month"
                       MainValue="@TotalEntriesThisMonth"
                       Unit=""
-                      SubText="@($"last entry {LastEntryInDays} days ago")"
+                      SubText="@($"last entry {LastEntryInDays}")"
                       IsPositive="true"
                       Icon="@Icons.Material.Outlined.Assessment" />
 
@@ -410,6 +409,12 @@
             {
                 var daysSinceLastEntry = (int)(DateTime.Today - lastEntry.LogDate).TotalDays;
                 LastEntryInDays = daysSinceLastEntry.ToString();
+
+                if (LastEntryInDays == "0") {LastEntryInDays = "today"; return; }
+                if (LastEntryInDays == "1") {LastEntryInDays = "1 day ago"; return; }
+
+                LastEntryInDays = daysSinceLastEntry.ToString() + " days ago";
+
             }
         }
         catch (Exception ex)
@@ -417,5 +422,10 @@
             Snackbar.Add($"Exception: {ex}.");
         }
 
+    }
+
+    private void NewEntry()
+    {
+        Snackbar.Add("Have not implemented this yet. Navigate to new fuel log page...", Severity.Info);
     }
 }

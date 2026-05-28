@@ -16,6 +16,7 @@
 @inject UserState UserState
 @inject IJSRuntime JS
 @inject SalvageTableService TableService
+@inject UserService UserService
 @attribute [Authorize]
 
 <PageTitle>New Dispatch Documents</PageTitle>
@@ -554,7 +555,7 @@
     private string _claimNumber = "";
     private string _customerAddress = "";
 
-    private string _captainEmail = "";
+    private string _captainEmail => UserService.User?.Email ?? "";
     private string _captainTypedSignature = "";
     private string _gps = "";
     private bool IsUnaccompaniedForm => _selectedForm?.DisplayName.Contains("Unaccompanied") == true;
@@ -637,7 +638,7 @@
 
         try
         {
-            
+
             if (request.FormName == "Credit Card Authorization Form")
             {
                 signUrl = $"{Nav.BaseUri}credit-auth/{Uri.EscapeDataString(request.Token)}";
@@ -702,20 +703,28 @@
     //         _ => _sentRequest
     //     };
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (!firstRender)
+    //     {
+    //         GetCaptainEmail();
+
+    //         await LoadDocumentsAsync();
+    //     }
+
+    // }
+
+    protected override async Task OnInitializedAsync()
     {
-        if (!firstRender)
-        {
-            GetCaptainEmail();
-
-            await LoadDocumentsAsync();
-        }
-
+        await LoadDocumentsAsync();
     }
 
     private async Task LoadDocumentsAsync()
     {
-        var admin = isAdmin();
+        var admin = UserService.isAdmin;
+        var captEmail = "";
+
+        if (UserService.User is not null) captEmail = UserService.User.Email;
 
         if (admin)
         {
@@ -731,7 +740,7 @@
             //otherwise filter by captain. captain will have a role NOT admin, i.e, Captain
             _sentRequest = await Db.DocumentSignatureRequests
             .Include(x => x.CreditCard) //load related
-            .Where(x => x.CaptainEmail == _captainEmail)
+            .Where(x => x.CaptainEmail == captEmail)
             .OrderByDescending(x => x.SentAtUtc)
             .ToListAsync();
         }
@@ -781,19 +790,7 @@
         !string.IsNullOrWhiteSpace(_quote) && 
         _selectedPricingModel is not null;
 
-    private bool isAdmin()
-    {
-        if (UserState is not null)
-        {
-            var isUserAdmin = UserState.Roles!.Contains("Admin");
-            if (isUserAdmin)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
+   
     private async Task SendFormsAsync()
     {
         if (_form is null ) return;
@@ -908,19 +905,6 @@
             Snackbar.Add($"Email Not sent: {request.Content?.ToString()}", Severity.Error);
         }
 
-    }
-
-    private void GetCaptainEmail()
-    {
-        if (UserState.CurrentUser != null)
-        {
-            _captainEmail = UserState.CurrentUser.Email!;
-            return;
-        }
-        else
-        {
-            Snackbar.Add("Unable to load captain email", Severity.Error);
-        }
     }
 
     private async Task ViewSignedDocument(DocumentSignatureRequest request)
