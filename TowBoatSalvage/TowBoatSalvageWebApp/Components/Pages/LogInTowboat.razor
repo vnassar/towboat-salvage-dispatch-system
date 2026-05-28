@@ -1,9 +1,15 @@
 ﻿@page "/login-towboat"
+@attribute [IgnoreAntiforgeryToken]
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Mvc
 @using TowBoatSalvageWebApp.Data
+@using TowBoatSalvageWebApp.Services
 @inject SignInManager<ApplicationUser> SignInManager
-@inject NavigationManager Navigation
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserService UserService
 
 <PageTitle>Login</PageTitle>
 
@@ -19,13 +25,13 @@
                 <span class="input-icon">
                     <i class="fa fa-user"></i>
                 </span>
-                <InputText class="form-control" @bind-Value="loginModel.UserName" placeholder="Username" />
+                <InputText class="form-control" @bind-Value="Input.UserName" placeholder="Username" />
             </div>
             <div class="input-group">
                 <span class="input-icon">
                     <i class="fa fa-lock"></i>
                 </span>
-                <InputText class="form-control" @bind-Value="loginModel.Password" type="password" placeholder="Password" />
+                <InputText class="form-control" @bind-Value="Input.Password" type="password" placeholder="Password" />
             </div>
             <div class="login-forgot">
                 <a href="/Identity/Account/ForgotPassword">Forgot Password?</a>
@@ -41,44 +47,46 @@
 
 
 @code {
-    private LoginModel loginModel = new();
     private string errorMsg;
-
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm]
-    private LoginModel Input { get; set; } = new();
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
+    [SupplyParameterFromForm]
+    private LoginModel Input { get; set; } = new();
+
     protected override async Task OnInitializedAsync()
     {
-        if (HttpMethods.IsGet(HttpContext.Request.Method))
-        {
-            // Clear the existing external cookie to ensure a clean login process
-            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
-        }
+        await SignInManager.SignOutAsync();
     }
-    
+
 
     private sealed class LoginModel
     {
-        public string UserName { get; set; }
-        public string Password { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
     }
 
     private async Task HandleLogin()
     {
-        var result = await SignInManager.PasswordSignInAsync(loginModel.UserName, loginModel.Password, false, false);
+        var result = await SignInManager.PasswordSignInAsync(Input.UserName, Input.Password, false, false);
         if (result.Succeeded)
         {
-            Navigation.NavigateTo("/"); // redirect to salvage board page
+            
+            //unable to use UserService here because of SSR, have to lookup the user and their role
+            var user = await SignInManager.UserManager.FindByNameAsync(Input.UserName);
+            var roles = user is not null ? await SignInManager.UserManager.GetRolesAsync(user) : new List<string>();
+
+            if (roles.Contains("Admin")) {Nav.NavigateTo("/admin-dashboard", forceLoad: true); return; }
+            if (roles.Contains("Mechanic")) {Nav.NavigateTo("/work-order", forceLoad: true); return; }
+            if (roles.Contains("Captain")) {Nav.NavigateTo("/new-document-request", forceLoad: true); return; }
+
+            Nav.NavigateTo("/new-document-request", forceLoad: true);
         }
         else
         {
-            errorMsg = "Invalid username or password.";
+
+            Snackbar.Add($"Invalid username or password.", Severity.Error);
         }
     }
 }
