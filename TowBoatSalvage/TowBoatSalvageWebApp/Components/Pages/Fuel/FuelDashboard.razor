@@ -388,20 +388,26 @@
             var groupedEntries = fuelEntries.GroupBy(f => f.BoatName).ToList();
             TotalActiveBoats = groupedEntries.Count().ToString();
             var yearlyTotal = 0m;
-            var totalEntries = 0;
+            var totalEntriesThisMonth = 0;
+            var allEntries = 0;
 
             foreach (var group in groupedEntries)
             {
-
                 foreach (var entry in group)
                 {
                     yearlyTotal += entry.TotalFuel;
-                    totalEntries++;
+                    if (entry.LogDate.Month == DateTime.Today.Month)
+                    {
+                        totalEntriesThisMonth++;
+                    }
+                    allEntries++;
                 }
             }
             TotalFuelYTD = yearlyTotal.ToString();
-            TotalEntriesThisMonth = totalEntries.ToString();
-            AverageFuelDrop = ((int)yearlyTotal / totalEntries).ToString();
+            TotalEntriesThisMonth = totalEntriesThisMonth.ToString();
+            AverageFuelDrop = ((int)yearlyTotal / allEntries).ToString();
+
+            //
 
 
             var lastEntry = fuelEntries.FirstOrDefault();
