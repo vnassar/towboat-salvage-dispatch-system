@@ -1,0 +1,291 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using TowBoatSalvageWebApp.Data
+@using TowBoatSalvageWebApp.Services
+@inject UserService UserService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject ApplicationDbContext UserDb
+
+<MudContainer MaxWidth="MaxWidth.False" >
+    <MudPaper Elevation="0" >
+        <MudPaper Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mt-5 px-4 w-100" Style="width:800px;">
+                <MudText Typo="Typo.h6">Users</MudText>
+                <MudTextField @bind-value="_searchText" Placeholder="Search By name..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Text" Clearable="true" Immediate="true" Style="width: 250px;" />
+            </MudStack>
+        </MudPaper>
+        @if (!isEditingUser)
+        {
+            <MudPaper Elevation="0" Class="pa-4 mb-4">
+
+                <MudTable Items="FilteredUsers" Hover="true" Dense="true" HorizontalScrollbar="true">
+                    <HeaderContent>
+                        <MudTh>Name</MudTh>
+                        <MudTh>Email</MudTh>
+                        <MudTh>Role</MudTh>
+                        <MudTh>Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Name">
+                            <MudText Typo="Typo.body2">@context.Name</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Email">@context.Email</MudTd>
+                        <MudTd DataLabel="Roles">
+                            <MudStack Row="true" Spacing="3">
+                                @{
+                                    var result = userRoles.TryGetValue(context.Id, out var role);
+                                    if (result)
+                                    {
+                                        foreach (var entry in role!)
+                                        {
+                                            <MudText Typo="Typo.body2">@entry</MudText>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2">Role must be assigned</MudText>
+                                    }
+                                }
+                                @if (context.AddToFuelList)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Outlined.LocalGasStation" />
+                                }
+                            </MudStack>
+                        </MudTd>
+                        <MudTd DataLabel="Action">
+                            <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                                     AriaLabel="Open user menu">
+                                <MudMenuItem Label="Edit" OnClick="async () => await EditUser(context)" />
+                            </MudMenu>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        }
+        else
+        {
+            @if (_editingUser is not null)
+            {
+                <EditUserPanel User="_editingUser" OnBack="@(() => isEditingUser = false)" AvailableRoles="availableRoles" OnRoleChanged="HandleRoleChangedAsync" />
+            }
+        }
+    </MudPaper>
+</MudContainer>
+
+
+@code {
+    private int _activeTab = 0;
+    private List<ApplicationUser> users = new();
+    private Dictionary<string, List<string>> userRoles = new();
+    private Dictionary<string, string> selectedRoleByUser = new();
+    private List<string> availableRoles = new();
+    private string? currentUserId;
+    private List<ApplicationUser> pendingUsers = new();
+    private bool isEditingUser = false;
+    private ApplicationUser? _editingUser;
+    private string _searchText = string.Empty;
+    private IEnumerable<ApplicationUser> FilteredUsers => string.IsNullOrWhiteSpace(_searchText) ? users : users.Where(u => u.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
+
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsersAndRolesAsync();
+        await LoadPendingUsersAsync();
+
+    }
+
+    private async Task HandleRoleChangedAsync()
+    {
+        await LoadUsersAndRolesAsync();
+        await LoadPendingUsersAsync();
+    }
+
+    private async Task LoadCurrentUserAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var currentUser = await UserManager.GetUserAsync(authState.User);
+        currentUserId = currentUser?.Id;
+    }
+
+    private async Task ConfirmAndDeleteUserAsync(ApplicationUser user)
+    {
+        var isAdmin = UserService.isAdmin;
+        if (!isAdmin)
+        {
+            Snackbar.Add($"Only Admins are allowed to edit users.", Severity.Error);
+            return;
+        }
+
+        if (user.Id == currentUserId)
+        {
+            Snackbar.Add("You can't delete your own account.", Severity.Warning);
+            return;
+        }
+
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            title: "Delete User",
+            markupMessage: (MarkupString)$"Are you sure you want to delete <b>{user.Email}</b>?",
+            yesText: "Delete",
+            cancelText: "Cancel"
+            );
+
+        if (confirm == true)
+        {
+            await DeleteUserAsync(user);
+        }
+    }
+
+    private async Task DeleteUserAsync(ApplicationUser user)
+    {
+        var result = await UserManager.DeleteAsync(user);
+        if (result.Succeeded)
+        {
+            Snackbar.Add("User deleted successfully.", Severity.Success);
+            await LoadUsersAndRolesAsync();
+        }
+        else
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            Snackbar.Add($"Failed to delete user: {errors}", Severity.Error);
+        }
+    }
+
+    private async Task LoadPendingUsersAsync()
+    {
+        pendingUsers = users.Where(u => !u.isApproved).ToList();
+        await Task.CompletedTask;
+    }
+
+    private async Task LoadUsersAndRolesAsync()
+    {
+        users = await UserManager.Users.OrderBy(u => u.Email).ToListAsync();
+
+        availableRoles = await RoleManager.Roles
+            .Select(r => r.Name!)
+            .OrderBy(r => r)
+            .ToListAsync();
+
+        userRoles.Clear();
+        selectedRoleByUser.Clear();
+
+        foreach (var user in users)
+        {
+            var roles = (await UserManager.GetRolesAsync(user)).ToList();
+            userRoles[user.Id] = roles;
+            selectedRoleByUser[user.Id] = availableRoles.FirstOrDefault() ?? "";
+        }
+    }
+
+    private async Task UpdateNameAsync(ApplicationUser user, string? newName)
+    {
+        var isAdmin = UserService.isAdmin;
+        if (!isAdmin)
+        {
+            Snackbar.Add($"Only Admins are allowed to edit users.", Severity.Error);
+            return;
+        }
+
+        var trimmed = (newName ?? string.Empty).Trim();
+
+        user.Name = trimmed;
+
+        var result = await UserManager.UpdateAsync(user);
+        if (result.Succeeded)
+        {
+            Snackbar.Add($"Updated name for {user.Email}.", Severity.Success);
+        }
+        else
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            Snackbar.Add($"Failed to update name: {errors}", Severity.Error);
+        }
+
+        await LoadUsersAndRolesAsync();
+    }
+
+    private async Task AddRoleAsync(ApplicationUser user)
+    {
+        var isAdmin = UserService.isAdmin;
+        if (!isAdmin)
+        {
+            Snackbar.Add($"Only Admins are allowed to edit users.", Severity.Error);
+            return;
+        }
+
+        if (!selectedRoleByUser.TryGetValue(user.Id, out var role) || string.IsNullOrWhiteSpace(role))
+        {
+            Snackbar.Add("Please choose a role before adding.", Severity.Warning);
+            return;
+        }
+
+        if (await UserManager.IsInRoleAsync(user, role))
+        {
+            Snackbar.Add($"User already has role '{role}'.", Severity.Info);
+            return;
+        }
+
+        var result = await UserManager.AddToRoleAsync(user, role);
+        if (result.Succeeded)
+        {
+            if (user.isApproved == false)
+            {
+                user.isApproved = true;
+                await UserManager.UpdateAsync(user);
+                Snackbar.Add($"{user.Email} has been approved. Role set to '{role}'.", Severity.Success);
+                await LoadUsersAndRolesAsync();
+
+                return;
+            }
+
+            Snackbar.Add($"Added role '{role}' to {user.Email}.", Severity.Success);
+            await LoadUsersAndRolesAsync();
+        }
+        else
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            Snackbar.Add($"Failed to add role: {errors}", Severity.Error);
+        }
+    }
+
+    private async Task RemoveRoleAsync(ApplicationUser user, string role)
+    {
+        var isAdmin = UserService.isAdmin;
+        if (!isAdmin)
+        {
+            Snackbar.Add($"Only Admins are allowed to edit users.", Severity.Error);
+            return;
+        }
+
+        var result = await UserManager.RemoveFromRoleAsync(user, role);
+        if (result.Succeeded)
+        {
+            Snackbar.Add($"Removed role '{role}' from {user.Email}.", Severity.Success);
+            await LoadUsersAndRolesAsync();
+        }
+        else
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            Snackbar.Add($"Failed to remove role: {errors}", Severity.Error);
+        }
+    }
+
+    private async Task EditUser(ApplicationUser user)
+    {
+        if (UserService.roles.Contains("Manager"))
+        {
+            Snackbar.Add("Managers are not allowed to edit users.", Severity.Info);
+            return;
+        }
+
+        _editingUser = user;
+        isEditingUser = true;
+
+        await Task.CompletedTask;
+    }
+}

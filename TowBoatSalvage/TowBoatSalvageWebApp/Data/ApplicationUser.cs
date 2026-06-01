@@ -10,6 +10,8 @@ namespace TowBoatSalvageWebApp.Data
         public bool isAdmin { get; set; } = false; // this will only be true for a few, dont wanna setup roles through identity right now
 
         public string Name { get; set; } = string.Empty; // setting up names to identify comment in work order section
+
+        public bool AddToFuelList { get; set; } = false;
     }
 
 }

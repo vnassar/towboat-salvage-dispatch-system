@@ -1,0 +1,462 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using TowBoatSalvageWebApp.Data
+@using TowBoatSalvageWebApp.Services
+@using static TowBoatSalvageWebApp.Components.Pages.EditUserPanel
+@inject RoleManager<IdentityRole> RoleManager
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
+@inject UserService UserService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+
+<MudStack Spacing="2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack" />
+    </MudStack>
+
+ 
+    <MudGrid>
+
+        
+        <MudItem xs="12" sm="3">
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                    <MudAvatar Style="width:72px;height:72px;font-size:1.5rem;">
+                        @GetInitials(User.Name)
+                    </MudAvatar>
+                    <MudText Typo="Typo.h6">@User.Name</MudText>
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">
+                        @(User.isApproved ? "Active" : "Pending")
+                    </MudChip>
+                </MudStack>
+                <MudDivider Class="my-3" />
+                <MudStack Spacing="2">
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Outlined.Email" Size="Size.Small" />
+                        <MudText Typo="Typo.body2">@User.Email</MudText>
+                    </MudStack>
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Outlined.Circle" Size="Size.Small" />
+                        @foreach (var role in userRoles!)
+                        {
+                            <MudText Typo="Typo.body2">@(role ?? "No role")</MudText>
+                        }
+                        
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        
+        <MudItem xs="12" sm="9">
+            <MudStack Spacing="3">
+
+                
+                <MudPaper Elevation="1" Class="pa-4">
+                    <MudText Typo="Typo.h6">Profile Information</MudText>
+                    <MudText Typo="Typo.body2" Style="color:#757575;" Class="mb-3">
+                        Update the user's personal details.
+                    </MudText>
+                    <MudTextField @bind-Value="_editName"
+                                  Label="Full Name"
+                                  Variant="Variant.Outlined"
+                                  FullWidth="true"
+                                  Class="mb-3" OnBlur="SaveAsync"/>
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField Value="@User.Email"
+                                          Label="Email Address"
+                                          Variant="Variant.Outlined"
+                                          Disabled="true"
+                                          FullWidth="true" />
+                            <MudText Typo="Typo.caption" Style="color:#757575;">
+                                Email cannot be changed directly.
+                            </MudText>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                
+                <MudPaper Elevation="1" Class="pa-4">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h6">Password &amp; Security</MudText>
+                            <MudText Typo="Typo.body2" Style="color:#757575;">
+                                Send a password reset email to the user.
+                            </MudText>
+                        </MudStack>
+                        <MudButton Variant="Variant.Outlined"
+                                   StartIcon="@Icons.Material.Filled.Key">
+                            Reset Password
+                        </MudButton>
+                    </MudStack>
+                </MudPaper>
+
+                
+                <MudPaper Elevation="1" Class="pa-4">
+                    <MudText Typo="Typo.h6">Role &amp; Permissions</MudText>
+                    <MudText Typo="Typo.body2" Style="color:#757575;" Class="mb-3">
+                        Select the primary role for this user.
+                    </MudText>
+                    <MudGrid>
+                        @foreach (var role in _roleCards)
+                        {
+                            @* var isSelected = selectedRole == role.Name; *@
+                            <MudItem xs="12" sm="6">
+                                <MudPaper Outlined="true"
+                                          Class="pa-3"
+                                          Style="@(role.active ? "border: 2px solid #1a1a1a; cursor:pointer;" : "border: 1px solid  #e0e0e0; cursor:pointer;")"
+                                      @onclick="() => HandleRoleClick(role)">
+                                    <MudStack Row="true"
+                                          Justify="Justify.SpaceBetween"
+                                          AlignItems="AlignItems.Center">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudIcon Icon="@role.Icon" Size="Size.Small" />
+                                        <MudText Typo="Typo.subtitle2">@role.Name</MudText>
+                                    </MudStack>
+                                    <MudIcon Icon="@(role.active ? Icons.Material.Filled.RadioButtonChecked : Icons.Material.Outlined.RadioButtonUnchecked)"
+                                             Size="Size.Small" />
+                                    </MudStack>
+                                    <MudText Typo="Typo.body2" Style="color:#757575;" Class="mt-1">
+                                    @role.Description
+                                    </MudText>
+                                </MudPaper>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </MudPaper>
+
+                
+                <MudPaper Elevation="1" Class="pa-4">
+                    <MudText Typo="Typo.h6">Access &amp; Lists</MudText>
+                    <MudText Typo="Typo.body2" Style="color:#757575;" Class="mb-3">
+                        Manage specific system access and list memberships.
+                    </MudText>
+                    <MudStack Row="true"
+                              Justify="Justify.SpaceBetween"
+                              AlignItems="AlignItems.Center"
+                              Class="py-2">
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@Icons.Material.Outlined.LocalGasStation" />
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.subtitle2">Fuel List</MudText>
+                                <MudText Typo="Typo.body2" Style="color:#757575;">
+                                    Add user to the fuel list drop down
+                                </MudText>
+                            </MudStack>
+                        </MudStack>
+                        <MudSwitch T="bool" Value="AddToFuelList" Color="Color.Dark" ValueChanged="OnFuelListChanged"/>
+                    </MudStack>
+                    <MudDivider />
+                </MudPaper>
+
+               
+                <MudPaper Outlined="true"
+                          Class="mb-5 pa-4"
+                          Style="border-color: #f44336;">
+                    <MudStack Row="true"
+                              Justify="Justify.SpaceBetween"
+                              AlignItems="AlignItems.Center">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h6" Color="Color.Error">Danger Zone</MudText>
+                            <MudText Typo="Typo.body2" Style="color:#757575;">
+                                Deleting this account permanently removes it from the database.
+                            </MudText>
+                        </MudStack>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Error"
+                                   StartIcon="@Icons.Material.Filled.Warning"
+                                   OnClick="DeactivateUserAsync">
+                            Delete Account
+                        </MudButton>
+                    </MudStack>
+                </MudPaper>
+
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+</MudStack>
+
+@code {
+    [Parameter] public ApplicationUser User { get; set; } = default!;
+    [Parameter] public EventCallback OnBack { get; set; }
+    [Parameter] public List<string> AvailableRoles { get; set; } = new();
+    [Parameter] public EventCallback OnRoleChanged { get; set; }
+
+    private List<BreadcrumbItem> _breadcrumbs = new();
+    private string _editName = string.Empty;
+    private List<string>? selectedRole;
+    private List<string>? userRoles = new();
+    private int currentRoleInRoleCard;
+    private bool AddToFuelList {get;set;}
+
+
+    protected override void OnParametersSet()
+    {
+        _editName = User.Name ?? string.Empty;
+        AddToFuelList = User.AddToFuelList;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRole();
+    }
+
+    public class RoleCard
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+        public bool active { get; set; } = false;
+
+        public RoleCard(string name, string description, string icon, bool active)
+        {
+            Name = name;
+            Description = description;
+            Icon = icon;
+            this.active = active;
+        }
+    }
+
+    private List<RoleCard> _roleCards = new()
+    {
+        new("Admin", "Full access to all system settings and user management.", Icons.Material.Outlined.Shield, false),
+        new("Manager", "Full access to all system settings and no user management.", Icons.Material.Outlined.People, false),
+        new("Captain", "Access to assigned salvages and able to request documents.", Icons.Material.Outlined.Anchor, false),
+        new("Mechanic", "Access to assigned salvages and work orders.", Icons.Material.Outlined.Build, false),
+    };
+
+    private async Task LoadRole()
+    {
+        userRoles = (await UserManager.GetRolesAsync(User)).ToList();
+
+        foreach (var role in userRoles)
+        {
+            if (role.Contains("Admin"))
+            {
+                _roleCards[0].active = true;
+                currentRoleInRoleCard = 0;
+            }
+            if (role.Contains("Manager"))
+            {
+                _roleCards[1].active = true;
+                currentRoleInRoleCard = 1;
+            }
+            if (role.Contains("Captain"))
+            {
+                _roleCards[2].active = true;
+                currentRoleInRoleCard = 2;
+            }
+            if (role.Contains("Mechanic"))
+            {
+                _roleCards[3].active = true;
+                currentRoleInRoleCard = 3;
+            }
+        }
+    }
+
+    private async Task HandleRoleClick(RoleCard role)
+    {
+        try
+        {
+            var currentRole = userRoles?.FirstOrDefault();
+            if (currentRole == role.Name) return;
+
+            if (userRoles!.Contains("Admin") && role.Name != "Admin")
+            {
+                var confirm = await DialogService.ShowMessageBoxAsync(
+                    title: "Change role for admin",
+                    markupMessage: (MarkupString)"Are you sure you want to do this?",
+                    yesText: "Confirm",
+                    cancelText: "Cancel"
+                );
+
+                if (confirm != true) return;
+            }
+            if (role.Name == "Admin")
+            {
+                var confirm = await DialogService.ShowMessageBoxAsync(
+                    title: "Change role to admin",
+                    markupMessage: (MarkupString)$"{User.Name} will be able to modify users. Are you sure you want to do this?",
+                    yesText: "Confirm",
+                    cancelText: "Cancel"
+                );
+
+                if (confirm != true) return;
+            }
+
+            if (currentRole is not null)
+            {
+                await RemoveRoleAsync(User, currentRole);
+                _roleCards[currentRoleInRoleCard].active = false;
+            }
+
+            await AddRoleAsync(User, role.Name);
+
+            User = await UserManager.FindByIdAsync(User.Id) ?? User;
+
+            await LoadRole();
+
+            await OnRoleChanged.InvokeAsync();
+
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Exception caught: {ex.Message}", Severity.Warning);
+        }
+
+    }
+
+
+    private async Task OnFuelListChanged(bool newValue)
+    {
+        if (User is null) return;
+
+        AddToFuelList = newValue;
+        User.AddToFuelList = newValue;
+
+        await UserManager.UpdateAsync(User);
+        if (User.AddToFuelList)  
+        {
+            Snackbar.Add($"{User.Name} has been added to the fuel list dropdown", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add($"{User.Name} has been removed from the fuel list dropdown", Severity.Success);
+        }
+    }
+
+    private string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[^1][0]}".ToUpper()
+            : name[..Math.Min(2, name.Length)].ToUpper();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (User is null) return;
+
+        if (string.IsNullOrWhiteSpace(_editName))
+        {
+            Snackbar.Add("Name cannot be empty.", Severity.Warning);
+            return;
+        }
+
+        User.Name = _editName;
+
+
+        var result = await UserManager.UpdateAsync(User);
+        if (result.Succeeded)
+        {
+            Snackbar.Add("User profile updated successfully.", Severity.Success);
+        }
+        else
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            Snackbar.Add($"Failed to update user: {errors}", Severity.Error);
+        }
+    }
+
+    private async Task DeactivateUserAsync()
+    {
+
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            title: "This will permanently delete this account",
+            markupMessage: (MarkupString)"Are you sure you want to do this?",
+            yesText: "Delete now",
+            cancelText: "Cancel"
+
+        );
+        if (confirm != true) return;
+
+        if (User is null) return;
+
+        try
+        {
+            var result = await UserManager.DeleteAsync(User);
+            if (result.Succeeded)
+            {
+                Snackbar.Add("This user has been deleted", Severity.Success);
+                Nav.NavigateTo("/admin-dashboard", forceLoad: true);
+            }
+        }
+        catch(Exception ex)
+        {
+            Snackbar.Add($"Failed to delete account: {ex.Message}", Severity.Warning);
+        }
+
+
+
+    }
+
+    private async Task AddRoleAsync(ApplicationUser user, string role)
+    {
+        var isAdmin = UserService.isAdmin;
+        if (!isAdmin)
+        {
+            Snackbar.Add($"Only Admins are allowed to edit users.", Severity.Error);
+            return;
+        }
+
+        if (await UserManager.IsInRoleAsync(user, role))
+        {
+            Snackbar.Add($"User already has role '{role}'.", Severity.Info);
+            return;
+        }
+
+        var result = await UserManager.AddToRoleAsync(user, role);
+        if (result.Succeeded)
+        {
+            if (user.isApproved == false)
+            {
+                user.isApproved = true;
+                await UserManager.UpdateAsync(user);
+                Snackbar.Add($"{user.Email} has been approved. Role set to '{role}'.", Severity.Success);
+                //await LoadUsersAndRolesAsync();
+
+                return;
+            }
+            await UserManager.UpdateAsync(user);
+            Snackbar.Add($"Added role '{role}' to {user.Email}.", Severity.Success);
+            //await LoadUsersAndRolesAsync();
+        }
+        else
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            Snackbar.Add($"Failed to add role: {errors}", Severity.Error);
+        }
+    }
+
+    private async Task RemoveRoleAsync(ApplicationUser user, string role)
+    {
+        var isAdmin = UserService.isAdmin;
+        if (!isAdmin)
+        {
+            Snackbar.Add($"Only Admins are allowed to edit users.", Severity.Error);
+            return;
+        }
+
+        var result = await UserManager.RemoveFromRoleAsync(user, role);
+        if (result.Succeeded)
+        {
+            //Snackbar.Add($"Removed role '{role}' from {user.Email}.", Severity.Success);
+            //await LoadUsersAndRolesAsync();
+        }
+        else
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            Snackbar.Add($"Failed to remove role: {errors}", Severity.Error);
+        }
+    }
+
+    private void ResetPassword()
+    {
+        //send email to user with reset link
+
+    }
+}

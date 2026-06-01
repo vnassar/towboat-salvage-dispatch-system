@@ -8,6 +8,7 @@ namespace TowBoatSalvageWebApp.Services
     {
         private readonly AuthenticationStateProvider _authStateprovider;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SalvageDbContext _db;
 
         private bool initialized = false;
 
@@ -16,10 +17,11 @@ namespace TowBoatSalvageWebApp.Services
         public bool isAdmin { get; private set; }
         public IList<string> roles { get; set; } = new List<string>();
 
-        public UserService(AuthenticationStateProvider authStateProvider, UserManager<ApplicationUser> userManager)
+        public UserService(AuthenticationStateProvider authStateProvider, UserManager<ApplicationUser> userManager, SalvageDbContext dBContext)
         {
             _authStateprovider = authStateProvider;
             _userManager = userManager;
+            _db = dBContext;
         }
 
         public bool GetIsAdmin() => isAdmin;
@@ -41,19 +43,6 @@ namespace TowBoatSalvageWebApp.Services
 
             initialized = true;
         }
-
-        public async Task SetUserService()
-        {
-            var authState = await _authStateprovider.GetAuthenticationStateAsync();
-            var user = await _userManager.GetUserAsync(authState.User);
-
-            if (user is null) return;
-
-            roles = await _userManager.GetRolesAsync(user);
-
-            User = user;
-            Name = user.Name;
-            isAdmin = user.isAdmin || roles.Contains("Admin", StringComparer.OrdinalIgnoreCase);
-        }
+        
     }
 }

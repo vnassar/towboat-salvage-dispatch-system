@@ -34,7 +34,10 @@
                 <InputText class="form-control" @bind-Value="Input.Password" type="password" placeholder="Password" />
             </div>
             <div class="login-forgot">
-                <a href="/Identity/Account/ForgotPassword">Forgot Password?</a>
+                <a href="/reset-password">Forgot Password?</a>
+            </div>
+            <div class="login-forgot">
+                <a href="Account/Register">Register New User</a>
             </div>
             <button class="login-btn" type="submit">Login</button>
             @if (!string.IsNullOrEmpty(errorMsg))

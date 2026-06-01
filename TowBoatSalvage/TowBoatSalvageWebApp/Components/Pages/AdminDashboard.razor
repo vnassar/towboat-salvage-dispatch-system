@@ -20,7 +20,7 @@
 <PageTitle>Admin Dashboard</PageTitle>
 
 
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Roles = "Admin,Manager")]
 
 
 
@@ -34,7 +34,7 @@
                    Width="169px"
                    Class="pa-2">
 
-            <MudText Typo="Typo.subtitle2" Class="mb-2">Admin Sections</MudText>
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Management Section</MudText>
             @*
                 <MudList T="string" Dense="true">
                 <MudListItem OnClick="@(() => SetSection(AdminSection.Fuel))" Selected="@(activeSection == AdminSection.Fuel)"> Fuel</MudListItem>
@@ -108,62 +108,7 @@
                 break;
 
                 case AdminSection.Users:
-                    <MudPaper Elevation="1" Class="pa-4 mb-4">
-                        <MudText Typo="Typo.h6" Class="mb-2">Registered Users</MudText>
-
-                        <MudTable Items="users" Hover="true" Dense="true">
-                            <HeaderContent>
-                                <MudTh>Name</MudTh>
-                                <MudTh>Email</MudTh>
-                                <MudTh>Roles</MudTh>
-                                <MudTh>Assign Role</MudTh>
-                                <MudTh>Delete</MudTh>
-                            </HeaderContent>
-                            <RowTemplate>
-                                <MudTd DataLabel="Name">
-                                    <MudTextField T="string"
-                                                  Value="@context.Name"
-                                                  ValueChanged="(async (string? newValue) => await UpdateNameAsync(context, newValue))">
-                                    </MudTextField>
-                                </MudTd>
-                                <MudTd DataLabel="Email">@context.Email</MudTd>
-                                <MudTd DataLabel="Roles">
-                                    <MudChipSet T="string">
-                                        @if (userRoles.TryGetValue(context.Id, out var roles))
-                                        {
-                                            @foreach (var role in roles)
-                                            {
-                                                <MudChip T="string" Closeable="true" OnClose="async () => await RemoveRoleAsync(context, role)">
-                                                    @role
-                                                </MudChip>
-                                            }
-                                        }
-                                        else
-                                        {
-                                            <MudChip T="string" Disabled="true">None</MudChip>
-                                        }
-                                    </MudChipSet>
-                                </MudTd>
-                                <MudTd DataLabel="Assign Role">
-                                    <MudSelect T="string" Dense="true" Label="Select role"
-                                               @bind-Value="selectedRoleByUser[context.Id]">
-                                        @foreach (var role in availableRoles)
-                                        {
-                                            <MudSelectItem Value="@role">@role</MudSelectItem>
-                                        }
-                                    </MudSelect>
-                                    <MudButton Class="mt-2" Variant="Variant.Filled" Style="background-color: rgb(42, 42, 248); color: white;"
-                                               OnClick="async () => await AddRoleAsync(context)">
-                                        Add Role
-                                    </MudButton>
-                                </MudTd>
-
-                                <MudTd DataLabel="Delete">
-                                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Disabled="@(context.Id == currentUserId)" OnClick="async () => await ConfirmAndDeleteUserAsync(context)">Delete</MudButton>
-                                </MudTd>
-                            </RowTemplate>
-                        </MudTable>
-                    </MudPaper>
+                    <Settings />
                     break;
 
                 case AdminSection.Disk:
@@ -274,9 +219,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadUsersAndRolesAsync();
         LoadDiskInfo();
-        await LoadPendingUsersAsync();
 
         fuelSummary = await FuelLogService.GetFuelSummaryAsync(summaryYear);
 
@@ -289,175 +232,6 @@
     private void SetSection(AdminSection section)
     {
         activeSection = section;
-    }
-
-    private async Task LoadCurrentUserAsync()
-    {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var currentUser = await UserManager.GetUserAsync(authState.User);
-        currentUserId = currentUser?.Id;
-    }
-
-    private async Task ConfirmAndDeleteUserAsync(ApplicationUser user)
-    {
-        var isAdmin = UserService.isAdmin;
-        if (!isAdmin)
-        {
-            Snackbar.Add($"Only Admins are allowed to edit users.", Severity.Error);
-            return;
-        }
-
-        if (user.Id == currentUserId)
-        {
-            Snackbar.Add("You can't delete your own account.", Severity.Warning);
-            return;
-        }
-
-        var confirm = await DialogService.ShowMessageBoxAsync(
-            title: "Delete User",
-            markupMessage: (MarkupString)$"Are you sure you want to delete <b>{user.Email}</b>?",
-            yesText: "Delete",
-            cancelText: "Cancel"
-            );
-
-        if (confirm == true)
-        {
-            await DeleteUserAsync(user);
-        }
-    }
-
-    private async Task DeleteUserAsync(ApplicationUser user)
-    {
-        var result = await UserManager.DeleteAsync(user);
-        if (result.Succeeded)
-        {
-            Snackbar.Add("User deleted successfully.", Severity.Success);
-            await LoadUsersAndRolesAsync();
-        }
-        else
-        {
-            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            Snackbar.Add($"Failed to delete user: {errors}", Severity.Error);
-        }
-    }
-
-    private async Task LoadPendingUsersAsync()
-    {
-        pendingUsers = users.Where(u => !u.isApproved).ToList();
-        await Task.CompletedTask;
-    }
-
-    private async Task LoadUsersAndRolesAsync()
-    {
-        users = await UserManager.Users.OrderBy(u => u.Email).ToListAsync();
-
-        availableRoles = await RoleManager.Roles
-            .Select(r => r.Name!)
-            .OrderBy(r => r)
-            .ToListAsync();
-
-        userRoles.Clear();
-        selectedRoleByUser.Clear();
-
-        foreach (var user in users)
-        {
-            var roles = (await UserManager.GetRolesAsync(user)).ToList();
-            userRoles[user.Id] = roles;
-            selectedRoleByUser[user.Id] = availableRoles.FirstOrDefault() ?? "";
-        }
-    }
-
-    private async Task UpdateNameAsync(ApplicationUser user, string? newName)
-    {
-        var isAdmin = UserService.isAdmin;
-        if (!isAdmin)
-        {
-            Snackbar.Add($"Only Admins are allowed to edit users.", Severity.Error);
-            return;
-        }
-
-        var trimmed = (newName ?? string.Empty).Trim();
-
-        user.Name = trimmed;
-
-        var result = await UserManager.UpdateAsync(user);
-        if (result.Succeeded)
-        {
-            Snackbar.Add($"Updated name for {user.Email}.", Severity.Success);
-        }
-        else
-        {
-            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            Snackbar.Add($"Failed to update name: {errors}", Severity.Error);
-        }
-
-        await LoadUsersAndRolesAsync();
-    }
-
-    private async Task AddRoleAsync(ApplicationUser user)
-    {
-        var isAdmin = UserService.isAdmin;
-        if (!isAdmin)
-        {
-            Snackbar.Add($"Only Admins are allowed to edit users.", Severity.Error);
-            return;
-        }
-
-        if (!selectedRoleByUser.TryGetValue(user.Id, out var role) || string.IsNullOrWhiteSpace(role))
-        {
-            Snackbar.Add("Please choose a role before adding.", Severity.Warning);
-            return;
-        }
-
-        if (await UserManager.IsInRoleAsync(user, role))
-        {
-            Snackbar.Add($"User already has role '{role}'.", Severity.Info);
-            return;
-        }
-
-        var result = await UserManager.AddToRoleAsync(user, role);
-        if (result.Succeeded)
-        {
-            if (user.isApproved == false)
-            {
-                user.isApproved = true;
-                await UserManager.UpdateAsync(user);
-                Snackbar.Add($"{user.Email} has been approved. Role set to '{role}'.", Severity.Success);
-                await LoadUsersAndRolesAsync();
-
-                return;
-            }
-
-            Snackbar.Add($"Added role '{role}' to {user.Email}.", Severity.Success);
-            await LoadUsersAndRolesAsync();
-        }
-        else
-        {
-            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            Snackbar.Add($"Failed to add role: {errors}", Severity.Error);
-        }
-    }
-
-    private async Task RemoveRoleAsync(ApplicationUser user, string role)
-    {
-        var isAdmin = UserService.isAdmin;
-        if (!isAdmin)
-        {
-            Snackbar.Add($"Only Admins are allowed to edit users.", Severity.Error);
-            return;
-        }
-
-        var result = await UserManager.RemoveFromRoleAsync(user, role);
-        if (result.Succeeded)
-        {
-            Snackbar.Add($"Removed role '{role}' from {user.Email}.", Severity.Success);
-            await LoadUsersAndRolesAsync();
-        }
-        else
-        {
-            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            Snackbar.Add($"Failed to remove role: {errors}", Severity.Error);
-        }
     }
 
     private void LoadDiskInfo()

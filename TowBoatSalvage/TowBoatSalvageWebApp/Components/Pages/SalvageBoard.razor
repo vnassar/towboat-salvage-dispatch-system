@@ -11,7 +11,7 @@
 @inject ToastService ToastService
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
-
+@inject UserService UserService
 @implements IAsyncDisposable
 
 @attribute [Authorize]
@@ -1167,7 +1167,7 @@
 
 
 @code {
-        [Parameter] public bool IsFromAdminDashboard { get; set; }
+    [Parameter] public bool IsFromAdminDashboard { get; set; }
 
     private HubConnection? hubConnection;
     private bool hubStarted;
@@ -1540,6 +1540,7 @@
                 HighlightRow(rowId);
                 //await Task.CompletedTask;
                 StateHasChanged();
+                await Task.CompletedTask;
             });
 
         });
@@ -1590,7 +1591,15 @@
     private async Task LoadBoardAsync()
     {
         Columns = await TableService.GetColumnAsync();
-        Rows = await TableService.GetRowsWithCellAsync();
+        //filtering based on whose logged in
+        if (UserService.roles.Contains("Admin") || UserService.roles.Contains("Manager"))
+        {
+            Rows = await TableService.GetRowsWithCellAsync();
+        }
+        else
+        {
+            //to-do: filtering rows assigned to user 
+        }
         Ports = await TableService.GetPortsAsync();
         Captains = await TableService.GetCaptainsAsync();
 

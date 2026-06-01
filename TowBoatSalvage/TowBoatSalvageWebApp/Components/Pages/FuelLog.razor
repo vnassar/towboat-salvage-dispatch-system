@@ -1,8 +1,10 @@
 ﻿@inject ISnackbar Snackbar
 @inject FuelLogService FuelLogService
-
+@inject UserManager<ApplicationUser> UserManager
+@using Microsoft.EntityFrameworkCore
 @page "/fuel-log"
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
 @using TowBoatSalvageWebApp.Data
 @using TowBoatSalvageWebApp.Services
 
@@ -121,16 +123,25 @@
         "Towboat 16",
     };
 
-    private readonly List<string> crewMembers = new()
-    {
-        "Kris",
-        "Ryan",
-        "David",
-        "James",
-        "Casey",
-        "Andrew"
-    };
+    private readonly List<string> crewMembers = new();
 
+    protected override async Task OnInitializedAsync()
+    {
+        await CreateFuelList();
+    }
+
+    private async Task CreateFuelList()
+    {
+        var users = await UserManager.Users.OrderBy(u => u.Email).ToListAsync();
+
+        foreach (var user in users)
+        {
+            if (user.AddToFuelList == true)
+            {
+                crewMembers.Add(user.Name);
+            }
+        }
+    }
     private async Task SaveButton()
     {
         if (string.IsNullOrWhiteSpace(selectedBoat) || string.IsNullOrWhiteSpace(selectedCrew) || logDate is null)
