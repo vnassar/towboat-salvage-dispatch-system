@@ -1,4 +1,6 @@
-﻿namespace TowBoatSalvageWebApp.Models
+﻿using TowBoatSalvageWebApp.Data;
+
+namespace TowBoatSalvageWebApp.Models
 {
     public class SalvageCell
     {

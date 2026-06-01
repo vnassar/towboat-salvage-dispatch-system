@@ -1598,7 +1598,8 @@
         }
         else
         {
-            //to-do: filtering rows assigned to user 
+            var assignedCaptainName = UserService.Name;
+            Rows = await TableService.GetFilteredRowsByAssignedCaptain(assignedCaptainName);
         }
         Ports = await TableService.GetPortsAsync();
         Captains = await TableService.GetCaptainsAsync();

@@ -125,6 +125,10 @@
             {
                 // circuit already disconnected? why?
             }
+            catch (TaskCanceledException)
+            {
+                // JS interop was canceled because the circuit was torn down
+            }
         }
     }
 

@@ -212,6 +212,24 @@ namespace TowBoatSalvageWebApp.Services
                 .OrderBy(c => c.Order).ToListAsync();
         }
 
+        public async Task<List<SalvageRow>> GetFilteredRowsByAssignedCaptain(string? assignedCaptainName)
+        {
+            if (string.IsNullOrWhiteSpace(assignedCaptainName)) return new List<SalvageRow>();
+
+            var normalizedAssignedName = assignedCaptainName.Trim().ToUpper();
+
+            return await _db.Rows
+                    .AsNoTracking()
+                    .Include(r => r.Cells)
+                        .ThenInclude(cell => cell.Column)
+                    .Include(r => r.Cells)
+                        .ThenInclude(cell => cell.Files)
+                    .Where(r => r.Cells.Any(cell =>
+                        cell.Column != null && (cell.Column.Type == "Assigned To" || cell.Column.Label == "Assigned To") &&
+                        !string.IsNullOrWhiteSpace(cell.Value) && cell.Value.ToUpper() == normalizedAssignedName))
+                    .ToListAsync();
+        }
+
         public async Task<List<SalvageRow>> GetRowsWithCellAsync()
         {
             return await _db.Rows
