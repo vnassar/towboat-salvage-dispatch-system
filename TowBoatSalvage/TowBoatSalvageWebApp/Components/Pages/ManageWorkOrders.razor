@@ -773,6 +773,35 @@
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+        //rebuild correction threads to match current issues ONLY!, this removes stale corrections that were attached to deleted issues
+        var rebuiltThreads = new Dictionary<int, List<IssueCorrection>>();
+        if (order.IssueCorrectionThreads != null)
+        {
+            //only keep threads whose index still exists in the current issue list, should fix the bug kris mentioned with "issue #9"
+            for (int i = 0; i < normalizedIssues.Count; i++)
+            {
+                if (order.IssueCorrectionThreads.TryGetValue(i, out var thread))
+                {
+                    rebuiltThreads[i] = thread;
+                }
+            }
+        }
+
+        // clean up legacy issue corrections
+        var rebuiltLegacyCorrections = new List<string>();
+        var rebuiltLegacyCorrectionsBy = new List<string>();
+        for (int i = 0; i < normalizedIssues.Count; i++)
+        {
+            if (order.IssueCorrections is not null && i < order.IssueCorrections.Count) rebuiltLegacyCorrections.Add(order.IssueCorrections[i]);
+            else
+                rebuiltLegacyCorrections.Add(string.Empty);
+
+            if (order.IssueCorrectionsBy is not null && i < order.IssueCorrectionsBy.Count) rebuiltLegacyCorrectionsBy.Add(order.IssueCorrectionsBy[i]);
+            else
+                rebuiltLegacyCorrectionsBy.Add(string.Empty);
+
+        }
+
         var updated = new WorkOrder
         {
             Id = order.Id,
@@ -781,9 +810,9 @@
             Engine1Hours = draft.Engine1Hours,
             Engine2Hours = draft.Engine2Hours,
             ReportedIssues = normalizedIssues,
-            IssueCorrectionThreads = order.IssueCorrectionThreads ?? new(),
-            IssueCorrections = order.IssueCorrections ?? new(),
-            IssueCorrectionsBy = order.IssueCorrectionsBy ?? new(),
+            IssueCorrectionThreads = rebuiltThreads,
+            IssueCorrections = rebuiltLegacyCorrections,
+            IssueCorrectionsBy = rebuiltLegacyCorrectionsBy,
             IsAddingCorrection = order.IsAddingCorrection,
             CorrectionNotes = draft.CorrectionNotes?.Trim() ?? string.Empty,
             FromCrewMember = order.FromCrewMember,
