@@ -10,6 +10,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Stripe;
+using Microsoft.AspNetCore.DataProtection;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -86,6 +87,12 @@ builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.Requ
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
+
+// keep same encryption keys so that existing cookies remain valid, users wont have to sign in again after updates and redploying
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo("/var/www/towboatsalvage/data-protection-keys"))
+    .SetApplicationName("TowBoatSalvage");
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -120,7 +127,7 @@ app.MapRazorComponents<App>()
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
 
-// Stripe webhook — receives payment confirmation events
+// Stripe webhook ï¿½ receives payment confirmation events
 app.MapPost("/webhooks/stripe", async (
     HttpRequest request,
     IConfiguration config,
@@ -129,7 +136,7 @@ app.MapPost("/webhooks/stripe", async (
 {
     var logger = loggerFactory.CreateLogger("StripeWebhook");
 
-    // Step 1: Read the raw body — Stripe requires this for signature verification.
+    // Step 1: Read the raw body ï¿½ Stripe requires this for signature verification.
     var json = await new StreamReader(request.Body).ReadToEndAsync();
 
     // Step 2: Verify the webhook signature.
