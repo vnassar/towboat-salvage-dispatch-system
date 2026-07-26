@@ -61,7 +61,12 @@
     protected override async Task OnInitializedAsync()
     {
         await UserService.InitializeAsync();
-        loggedIn = UserService.User is not null;
+        if (UserService.User == null)
+        {
+            loggedIn = false;
+            return;
+        }
+        loggedIn = true;
     }
 
 

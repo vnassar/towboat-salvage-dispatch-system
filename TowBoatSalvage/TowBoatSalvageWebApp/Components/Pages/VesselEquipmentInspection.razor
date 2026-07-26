@@ -3,8 +3,10 @@
 @using Microsoft.EntityFrameworkCore
 @using TowBoatSalvageWebApp.Data
 @using TowBoatSalvageWebApp.Models
+@using TowBoatSalvageWebApp.Services
 @inject ISnackbar Snackbar
 @inject SalvageDbContext db
+@inject VehicleInspectionService VehicleInspection
 @attribute [Authorize]
 <PageTitle>AMS Vessel Inspection</PageTitle>
 
@@ -495,9 +497,8 @@
             inspection.OperationalCheck.VerifyPumpRuns = _verifyPumpRuns;
             inspection.OperationalCheck.DateOfPumpCheck = _dateOfPumpCheck;
 
-            await db.VehicleInspection.AddAsync(inspection);
-            await db.SaveChangesAsync();
 
+            await VehicleInspection.AddAsync(inspection);
             ClearAllFields();
 
             Snackbar.Add("Successfully submitted inspection", Severity.Success);

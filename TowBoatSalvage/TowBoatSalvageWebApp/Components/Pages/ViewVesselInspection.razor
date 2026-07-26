@@ -1,0 +1,432 @@
+@using Microsoft.AspNetCore.Authorization
+@using TowBoatSalvageWebApp.Models
+@using TowBoatSalvageWebApp.Services
+@inject VehicleInspectionService VehicleInspection
+@inject ISnackbar Snackbar
+@attribute [Authorize]
+
+<PageTitle>Vessel Equipment Inspections</PageTitle>
+
+
+
+<MudContainer MaxWidth="MaxWidth.False" >
+    <MudPaper Elevation="1" Class="wo-table-wrap">
+        @if (_isLoading)
+        {
+            <div class="pa-6 d-flex justify-center">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (inspections.Count == 0)
+        {
+            <div class="pa-6">
+                <MudText Typo="Typo.body1" Align="Align.Center">No Vessel Inspections found.</MudText>
+            </div>
+        }
+        else
+        {
+            <table class="wo-table">
+                <thead>
+                    <tr>
+                        <th>DATE</th>
+                        <th>VESSEL</th>
+                        <th>COMPLETED BY</th>
+                        <th>ACTION</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var inspection in PagedInspections)
+                    {
+                        <tr>
+                            <td>@inspection.DateOfInspection?.ToLocalTime()</td>
+                            <td class="font-weight-bold">@inspection.VesselNumber</td>
+                            <td class="font-weight-bold">@inspection.EmployeeOrCaptain</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </MudPaper>
+</MudContainer>
+
+
+
+@code {
+    [Parameter] public bool IsFromAdminDashboard { get; set; }
+
+    private bool _isLoading = false;
+    private int _currentPage = 1;
+    private const int PageSize = 10;
+
+    private int TotalPages{
+        get
+        {
+            var pages = (int)Math.Ceiling(inspections.Count / (double)PageSize);
+            return Math.Max(1, pages);
+        }
+    }
+
+    private List<VehicleInspection> PagedInspections
+        {
+            get 
+            {
+                if (_currentPage < 1) _currentPage = 1;
+                if (_currentPage > TotalPages) _currentPage = TotalPages;
+
+                return inspections
+                    .Skip((_currentPage - 1) * PageSize)
+                    .Take(PageSize)
+                    .ToList();
+            }
+        }
+
+    private List<VehicleInspection> inspections = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadInspectionsAsync();
+    }
+
+    private async Task LoadInspectionsAsync()
+    {
+        _isLoading = true;
+        var year = DateTime.Now.Year;
+        try
+        {
+            inspections = await VehicleInspection.GetVehicleInspectionsFromSelectedYearAsync(year);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error while fetching vessel inspection: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
+
+<style>
+    .manage-wo-page {
+        
+        background: #f6f9fc;
+        min-height: 100vh;
+    }
+
+    .text-muted {
+        color: #748197;
+    }
+
+    .wo-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(180px, 1fr));
+        gap: 14px;
+    }
+
+    .wo-stat-card {
+        padding: 16px 18px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #f8fafc;
+        border: 1px solid #e6eaf0;
+    }
+
+    .wo-stat-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .wo-stat-icon.neutral {
+            background: #eef2f7;
+            color: #5f6f86;
+        }
+
+        .wo-stat-icon.warning {
+            background: #fff4dc;
+            color: #d48c00;
+        }
+
+        .wo-stat-icon.success {
+            background: #dff7ea;
+            color: #149355;
+        }
+
+        .wo-stat-icon.primary {
+            background: #e3ecff;
+            color: #2c6de9;
+        }
+
+    .wo-filter-row {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) 170px 170px auto;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .wo-showing-text {
+        justify-self: end;
+        color: #6f7c91;
+        font-weight: 600;
+    }
+
+    .wo-table-wrap {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #e6eaf0;
+        background: #fff;
+    }
+
+    .wo-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .wo-table thead th {
+            text-align: left;
+            font-size: 0.78rem;
+            color: #6f7c91;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e7edf5;
+        }
+
+        .wo-table tbody td {
+            padding: 14px 18px;
+            border-bottom: 1px solid #edf2f8;
+            color: #1f2d3f;
+            vertical-align: middle;
+        }
+
+    .wo-order-chip {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 6px;
+        background: #edf2f8;
+        color: #6a7a90;
+        font-weight: 700;
+        font-size: 0.78rem;
+    }
+
+    .engine-val {
+        color: #6d7d93;
+        font-weight: 600;
+    }
+
+    .engine-sep {
+        margin: 0 8px;
+        color: #b2bdcc;
+    }
+
+    .wo-issue-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #edf2f8;
+        color: #567;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+
+    .wo-status {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        border: 1px solid transparent;
+    }
+
+        .wo-status.open {
+            background: #fff2d9;
+            border-color: #f2d08e;
+            color: #a36b00;
+        }
+
+        .wo-status.resolved {
+            background: #dcf8e8;
+            border-color: #a8e7c6;
+            color: #157f4e;
+        }
+
+    .wo-expanded-row td {
+        background: #f9fbfe;
+        padding: 0;
+    }
+
+    .wo-detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        padding: 18px;
+    }
+
+    .wo-detail-section {
+        min-height: 120px;
+    }
+
+    .wo-issue-item {
+        background: #fff;
+        border: 1px solid #e7edf5;
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+    }
+
+    .wo-awaiting-box,
+    .wo-empty-box,
+    .wo-comment-box {
+        border-radius: 10px;
+        padding: 14px;
+        border: 1px dashed #d7e0ec;
+        color: #6a7a90;
+        background: #fff;
+    }
+
+    .wo-comment-box {
+        border-style: solid;
+        border-color: #b4ebcd;
+        background: #eafaf1;
+        color: #1f5f3e;
+    }
+
+    .wo-detail-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        border-top: 1px solid #e7edf5;
+        padding: 12px 18px 14px 18px;
+        color: #708099;
+        font-size: .85rem;
+    }
+
+    .wo-id-badge {
+        background: #edf2f8;
+        color: #5c6d84;
+        font-weight: 700;
+        border-radius: 6px;
+        padding: 2px 8px;
+        font-size: .75rem;
+    }
+
+    .wo-row-actions {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .wo-delete-btn {
+        opacity: 0;
+        transform: translateX(6px);
+        pointer-events: none;
+        transition: opacity .15s ease, transform .15s ease;
+    }
+
+    .wo-table tbody tr:hover .wo-delete-btn,
+    .wo-table tbody tr:focus-within .wo-delete-btn {
+        opacity: 1;
+        transform: translateX(0);
+        pointer-events: auto;
+    }
+
+    .wo-edit-wrap {
+    padding: 18px;
+    background: #f9fbfe;
+}
+
+.wo-edit-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+
+.wo-edit-issue-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.wo-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.wo-pagination-wrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    border-top: 1px solid #e7edf5;
+    background: #fff;
+}
+
+.wo-pagination-text {
+    color: #6f7c91;
+    font-weight: 600;
+}
+
+    .wo-detail-readonly {
+        min-height: 120px;
+    }
+
+    .issue-correction-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .order-issue-item {
+        border-radius: 8px;
+        background: #f8f6f0;
+        border: 1px solid #f1e3b8;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .issue-dot {
+        color: #e9ad00;
+        font-size: 1.2rem;
+        line-height: 1;
+    }
+
+    .correction-box {
+        margin-left: 22px;
+        border-radius: 10px;
+        background: #edf4ff;
+        border: 1px solid #cddffc;
+        position: relative;
+    }
+
+        .correction-box::before {
+            content: "";
+            position: absolute;
+            left: -14px;
+            top: 16px;
+            width: 12px;
+            border-top: 2px dashed #b7c7e6;
+        }
+
+    .correction-label {
+        color: #425b84;
+        font-weight: 700;
+        letter-spacing: .2px;
+    }
+
+</style>

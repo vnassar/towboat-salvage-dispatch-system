@@ -92,6 +92,14 @@
                         </MudStack>
                     </TabContent>
                 </MudTabPanel>
+                <MudTabPanel>
+                    <TabContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%;">
+                            <MudText>Inspections</MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowRight" Size="Size.Small" />
+                        </MudStack>
+                    </TabContent>
+                </MudTabPanel>
             </MudTabs>
         </MudDrawer>
 
@@ -143,6 +151,12 @@
                         <ManageWorkOrders IsFromAdminDashboard="true" />
                     </MudPaper>
                     break;
+                
+                case AdminSection.VesselInspection:
+                    <MudPaper Elevation="0" Class="ml-n5 mr-n5">
+                        <ViewVesselInspection IsFromAdminDashboard="true" />
+                    </MudPaper>
+                    break;
 
             }
         </MudMainContent>
@@ -158,7 +172,8 @@
         Disk,
         SalvageBoard,
         Documents,
-        WorkOrders
+        WorkOrders,
+        VesselInspection
     }
 
     private AdminSection activeSection = AdminSection.Fuel;

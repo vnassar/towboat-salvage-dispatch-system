@@ -40,6 +40,7 @@ builder.Services.AddScoped<UserService>();
 StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 builder.Services.AddScoped<StripePaymentService>();
 
+builder.Services.AddScoped<VehicleInspectionService>();
 
 builder.Services.AddScoped<FuelLogService>();
 builder.Services.AddScoped<WorkOrderService>();
