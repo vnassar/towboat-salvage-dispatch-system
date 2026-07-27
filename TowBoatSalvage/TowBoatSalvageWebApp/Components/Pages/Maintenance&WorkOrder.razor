@@ -9,7 +9,7 @@
 @inject ISnackbar Snackbar
 @inject WorkOrderService WorkOrderService
 @inject UserService UserService
-@attribute [Authorize (Roles = "Admin,Manager,Mechanic")]
+@attribute [Authorize(Roles = "Admin,Manager,Mechanic")]
 <PageTitle>Maintenance & Work Order</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-0 maintenance-page">
@@ -46,21 +46,27 @@
             <MudPaper Elevation="2" Class="request-card pa-4 ma-4">
                 <MudText Typo="Typo.h4" Class="mb-4">New Request</MudText>
 
-                <MudSelect T="string" Label="Select Boat" Variant="Variant.Filled" Margin="Margin.Dense" Class="mb-3" @bind-Value="selectedBoat">
+                <MudSelect T="string" Label="Select Boat" Variant="Variant.Filled" Margin="Margin.Dense" Class="mb-3"
+                           @bind-Value="selectedBoat">
                     @foreach (var boat in boats)
                     {
                         <MudSelectItem Value="@boat">@boat</MudSelectItem>
                     }
                 </MudSelect>
 
-                <MudDatePicker Label="Date" Variant="Variant.Filled" Margin="Margin.Dense" Class="mb-3" @bind-Date="logDate"/>
+                <MudDatePicker Label="Date" Variant="Variant.Filled" Margin="Margin.Dense" Class="mb-3"
+                               @bind-Date="logDate" />
 
                 <MudGrid Class="mb-2">
                     <MudItem xs="12" sm="6">
-                        <MudTextField T="decimal?" Label="Engine 1 (hrs)" Placeholder="e.g. 1250" InputType="InputType.Number" Variant="Variant.Filled" Margin="Margin.Dense" @bind-Value="engine1Hours" Required="true"/>
+                        <MudTextField T="decimal?" Label="Engine 1 (hrs)" Placeholder="e.g. 1250"
+                                      InputType="InputType.Number" Variant="Variant.Filled" Margin="Margin.Dense"
+                                      @bind-Value="engine1Hours" Required="true" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
-                        <MudTextField T="decimal?" Label="Engine 2 (hrs)" Placeholder="e.g. 1250" InputType="InputType.Number" Variant="Variant.Filled" Margin="Margin.Dense" @bind-Value="engine2Hours" Required="true"/> 
+                        <MudTextField T="decimal?" Label="Engine 2 (hrs)" Placeholder="e.g. 1250"
+                                      InputType="InputType.Number" Variant="Variant.Filled" Margin="Margin.Dense"
+                                      @bind-Value="engine2Hours" Required="true" />
                     </MudItem>
                 </MudGrid>
 
@@ -72,20 +78,12 @@
 
                 <MudGrid Class="mb-2">
                     <MudItem xs="9">
-                        <MudTextField T="string"
-                                      Placeholder="Describe the issue..."
-                                      Variant="Variant.Filled"
-                                      Margin="Margin.Dense"
-                                      @bind-Value="NewIssueText"
-                                      OnKeyDown="HandleIssueInputKeyDown" />
+                        <MudTextField T="string" Placeholder="Describe the issue..." Variant="Variant.Filled"
+                                      Margin="Margin.Dense" @bind-Value="NewIssueText" OnKeyDown="HandleIssueInputKeyDown" />
                     </MudItem>
                     <MudItem xs="3" Class="d-flex align-center">
-                        <MudFab Variant="Variant.Filled"
-                                   Color="Color.Default"
-                                   Class="add-issue-btn"
-                                   FullWidth="true"
-                                   OnClick="AddIssue"
-                                   StartIcon="@Icons.Material.Filled.Add">
+                        <MudFab Variant="Variant.Filled" Color="Color.Default" Class="add-issue-btn" FullWidth="true"
+                                OnClick="AddIssue" StartIcon="@Icons.Material.Filled.Add">
                         </MudFab>
                     </MudItem>
                 </MudGrid>
@@ -105,16 +103,15 @@
                         {
                             <MudPaper Elevation="0" Class="issue-row px-3 py-2 mb-2">
                                 <MudText Typo="Typo.body1">@issue</MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.Close"
-                                               Size="Size.Small"
-                                               Class="issue-remove-btn"
+                                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Class="issue-remove-btn"
                                                OnClick="@(() => RemoveIssue(issue))" />
                             </MudPaper>
                         }
                     </div>
                 }
 
-                <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" Class="submit-btn" OnClick="SubmitWorkOrderAsync">
+                <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" Class="submit-btn"
+                           OnClick="SubmitWorkOrderAsync">
                     Submit Work Order
                 </MudButton>
             </MudPaper>
@@ -125,7 +122,8 @@
             <div class="open-orders-wrap pa-4">
                 <div class="d-flex align-center justify-space-between mb-3">
                     <MudText Typo="Typo.h5" Class="font-weight-bold">Needs Attention</MudText>
-                    <MudChip T="int" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">@OpenOrderCount Orders</MudChip>
+                    <MudChip T="int" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">@OpenOrderCount Orders
+                    </MudChip>
                 </div>
 
                 @if (OpenOrderCount == 0)
@@ -156,172 +154,190 @@
                                 <MudGrid>
                                     <MudItem xs="6">
                                         <MudText Typo="Typo.caption" Class="engine-label">PORT ENGINE</MudText>
-                                        <MudText Typo="Typo.h6"><strong>@order.Engine1Hours</strong> <span class="engine-hrs">hrs</span></MudText>
-                                    </MudItem>
-                                    <MudItem xs="6">
-                                        <MudText Typo="Typo.caption" Class="engine-label">STBD ENGINE</MudText>
-                                        <MudText Typo="Typo.h6"><strong>@order.Engine2Hours</strong> <span class="engine-hrs">hrs</span></MudText>
-                                    </MudItem>
-                                </MudGrid>
-                            </MudPaper>
+                                        <MudText Typo="Typo.h6"><strong>@order.Engine1Hours</strong> <span
+                                            class="engine-hrs">hrs</span></MudText>
+                                        </MudItem>
+                                        <MudItem xs="6">
+                                            <MudText Typo="Typo.caption" Class="engine-label">STBD ENGINE</MudText>
+                                            <MudText Typo="Typo.h6"><strong>@order.Engine2Hours</strong> <span
+                                                class="engine-hrs">hrs</span></MudText>
+                                            </MudItem>
+                                        </MudGrid>
+                                    </MudPaper>
 
-                            <MudText Typo="Typo.subtitle1" Class="mb-2 font-weight-bold">
-                                <MudIcon Icon="@Icons.Material.Outlined.ErrorOutline" Size="Size.Small" Class="mr-1 issue-alert-icon" />
-                                Reported Issues (@order.ReportedIssues.Count)
-                            </MudText>
+                                    <MudText Typo="Typo.subtitle1" Class="mb-2 font-weight-bold">
+                                        <MudIcon Icon="@Icons.Material.Outlined.ErrorOutline" Size="Size.Small"
+                                                 Class="mr-1 issue-alert-icon" />
+                                        Reported Issues (@order.ReportedIssues.Count)
+                                    </MudText>
 
-                            <div class="issue-correction-list">
-                            @for (var i = 0; i < order.ReportedIssues.Count; i++)
-                            {
-                                var issueIndex = i;
-                                var thread = GetCorrectionThread(order, issueIndex);
+                                    <div class="issue-correction-list">
+                                        @for (var i = 0; i < order.ReportedIssues.Count; i++)
+                                        {
+                                            var issueIndex = i;
+                                            var thread = GetCorrectionThread(order, issueIndex);
 
-                                <!-- The issue -->
-                                <MudPaper Elevation="0" Class="order-issue-item px-3 py-2 mb-1">
-                                    <span class="issue-dot">•</span>
-                                    @* <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Menu">
+                                            <!-- The issue -->
+                                            <MudPaper Elevation="0" Class="order-issue-item px-3 py-2 mb-1">
+                                                <span class="issue-dot">•</span>
+                                                @* <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Menu">
                                         <MudMenuItem Label="Delete" OnClick="RemoveIssue()" />
                                     </MudMenu> *@
-                                    <MudText Typo="Typo.body1" Class="font-weight-bold">
-                                        Issue #@(issueIndex + 1): @order.ReportedIssues[issueIndex]
-                                    </MudText>
-                                </MudPaper>
+                                                <MudText Typo="Typo.body1" Class="font-weight-bold">
+                                                    Issue #@(issueIndex + 1): @order.ReportedIssues[issueIndex]
+                                                </MudText>
+                                            </MudPaper>
 
-                                <!-- Existing corrections (read-only thread) -->
-                                @if (thread.Count > 0)
-                                {
-                                    @foreach (var correction in thread)
+                                            <!-- Existing corrections (read-only thread) -->
+                                            @if (thread.Count > 0)
+                                            {
+                                                @for (int c = 0; c < thread.Count; c++)
+                                                {
+                                                    var correction = thread[c];
+                                                    var correctionIndex = c;
+                                                    @if (IsEditingCorrection(order.Id, issueIndex, correctionIndex))
+                                                    {
+                                                        <div class="edit-mode">
+                                                            <MudPaper Elevation="0" Class="correction-box px-3 py-2 mb-1" Style="border-color:#66bb6a;">
+                                                                <MudTextField T="string"
+                                                                              Value="@GetCorrectionEditText(order.Id, issueIndex, correctionIndex)"
+                                                                              ValueChanged="@((string? val) => SetCorrectionEditText(order.Id, issueIndex, correctionIndex, val ?? string.Empty))"
+                                                                              Placeholder="Edit correction..." Lines="8" Variant="Variant.Filled"
+                                                                              Margin="Margin.None" Class="mb-2" />
+                                                                <div class="d-flex gap-2">
+                                                                    <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small"
+                                                                               Disabled="@string.IsNullOrWhiteSpace(GetCorrectionEditText(order.Id, issueIndex, correctionIndex))"
+                                                                               OnClick="@(() => SaveCorrectionAsync(order, issueIndex, correctionIndex))">
+                                                                        Save
+                                                                    </MudButton>
+                                                                    <MudButton Variant="Variant.Text" Size="Size.Small"
+                                                                               OnClick="@(() => CancelEditingCorrection(order.Id, issueIndex, correctionIndex))">
+                                                                        Cancel
+                                                                    </MudButton>
+                                                                </div>
+                                                            </MudPaper>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <MudPaper Elevation="0" Class="correction-box px-3 py-2 mb-1">
+                                                        <div class="d-flex justify-space-between align-center">
+                                                            <MudText Typo="Typo.caption" Class="correction-label">
+                                                                @correction.Author
+                                                            </MudText>
+                                                            <div class="d-flex align-center">
+                                                                <MudText Typo="Typo.caption" Style="color:#8899aa;">
+                                                                @correction.CreatedAtUtc.ToLocalTime().ToString("M/d/yyyy h:mm tt")
+                                                            </MudText>
+                                                            @*pencil for editing per kris*@
+                                                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                                                                        Class="ml-2"
+                                                                        OnClick="@(() => StartEditingCorrection(order, issueIndex, correctionIndex))" 
+                                                                        />
+                                                            </div>
+                                                            
+                                                        </div>
+                                                        <MudText Typo="Typo.body2">@correction.Text</MudText>
+                                                    </MudPaper>
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <MudPaper Elevation="0" Class="correction-box px-3 py-2 mb-1">
+                                                    <MudText Typo="Typo.body2" Class="font-italic" Style="color:#8899aa;">
+                                                        No corrections yet.
+                                                    </MudText>
+                                                </MudPaper>
+                                            }
+
+                                            <!-- Add Correction input (per-issue) -->
+                                            @if (IsAddingCorrectionForIssue(order.Id, issueIndex))
+                                            {
+                                                <MudPaper Elevation="0" Class="correction-box px-3 py-2 mb-3" Style="border-color:#66bb6a;">
+                                                    <MudTextField T="string" Value="@GetNewCorrectionText(order.Id, issueIndex)"
+                                                                  ValueChanged="@((string? val) => SetNewCorrectionText(order.Id, issueIndex, val ?? string.Empty))"
+                                                                  Placeholder="Describe what was done..." Lines="2" Variant="Variant.Filled"
+                                                                  Margin="Margin.Dense" Class="mb-2" />
+                                                    <div class="d-flex gap-2">
+                                                        <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small"
+                                                                   Disabled="@string.IsNullOrWhiteSpace(GetNewCorrectionText(order.Id, issueIndex))"
+                                                                   OnClick="@(() => SubmitCorrectionAsync(order, issueIndex))">
+                                                            Save
+                                                        </MudButton>
+                                                        <MudButton Variant="Variant.Text" Size="Size.Small"
+                                                                   OnClick="@(() => CancelAddingCorrection(order.Id, issueIndex))">
+                                                            Cancel
+                                                        </MudButton>
+                                                    </div>
+                                                </MudPaper>
+                                            }
+                                            else
+                                            {
+                                                <div class="mb-3">
+                                                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                                               StartIcon="@Icons.Material.Filled.AddComment"
+                                                               OnClick="@(() => StartAddingCorrection(order.Id, issueIndex))">
+                                                        Add Correction
+                                                    </MudButton>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+
+                                    <!-- Add Issue to existing order -->
+                                    @if (IsAddingIssue(order.Id))
                                     {
-                                        <MudPaper Elevation="0" Class="correction-box px-3 py-2 mb-1">
-                                            <div class="d-flex justify-space-between align-center">
-                                                <MudText Typo="Typo.caption" Class="correction-label">
-                                                    @correction.Author
-                                                </MudText>
-                                                <MudText Typo="Typo.caption" Style="color:#8899aa;">
-                                                    @correction.CreatedAtUtc.ToLocalTime().ToString("M/d/yyyy h:mm tt")
-                                                </MudText>
+                                        <MudPaper Elevation="0" Class="order-issue-item px-3 py-2 mb-2" Style="border-color:#66bb6a;">
+                                            <MudTextField T="string" Value="@GetNewIssueText(order.Id)"
+                                                          ValueChanged="@((string? val) => SetNewIssueText(order.Id, val ?? string.Empty))"
+                                                          Placeholder="Describe the new issue..." Variant="Variant.Filled" Margin="Margin.Dense"
+                                                          Class="flex-grow-1 mb-2" />
+                                            <div class="d-flex gap-2">
+                                                <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small"
+                                                           Disabled="@string.IsNullOrWhiteSpace(GetNewIssueText(order.Id))"
+                                                           OnClick="@(() => SubmitNewIssueAsync(order))">
+                                                    Save
+                                                </MudButton>
+                                                <MudButton Variant="Variant.Text" Size="Size.Small"
+                                                           OnClick="@(() => CancelAddingIssue(order.Id))">
+                                                    Cancel
+                                                </MudButton>
                                             </div>
-                                            <MudText Typo="Typo.body2">@correction.Text</MudText>
                                         </MudPaper>
                                     }
-                                }
-                                else
-                                {
-                                    <MudPaper Elevation="0" Class="correction-box px-3 py-2 mb-1">
-                                        <MudText Typo="Typo.body2" Class="font-italic" Style="color:#8899aa;">
-                                            No corrections yet.
-                                        </MudText>
-                                    </MudPaper>
-                                }
-
-                                <!-- Add Correction input (per-issue) -->
-                                @if (IsAddingCorrectionForIssue(order.Id, issueIndex))
-                                {
-                                    <MudPaper Elevation="0" Class="correction-box px-3 py-2 mb-3" Style="border-color:#66bb6a;">
-                                        <MudTextField T="string"
-                                                      Value="@GetNewCorrectionText(order.Id, issueIndex)"
-                                                      ValueChanged="@((string? val) => SetNewCorrectionText(order.Id, issueIndex, val ?? string.Empty))"
-                                                      Placeholder="Describe what was done..."
-                                                      Lines="2"
-                                                      Variant="Variant.Filled"
-                                                      Margin="Margin.Dense"
-                                                      Class="mb-2" />
-                                        <div class="d-flex gap-2">
-                                            <MudButton Variant="Variant.Filled"
-                                                       Color="Color.Success"
-                                                       Size="Size.Small"
-                                                       Disabled="@string.IsNullOrWhiteSpace(GetNewCorrectionText(order.Id, issueIndex))"
-                                                       OnClick="@(() => SubmitCorrectionAsync(order, issueIndex))">
-                                                Save
-                                            </MudButton>
-                                            <MudButton Variant="Variant.Text"
-                                                       Size="Size.Small"
-                                                       OnClick="@(() => CancelAddingCorrection(order.Id, issueIndex))">
-                                                Cancel
+                                    else
+                                    {
+                                        <div class="mb-2">
+                                            <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                                       StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => StartAddingIssue(order.Id))">
+                                                Add Issue
                                             </MudButton>
                                         </div>
-                                    </MudPaper>
-                                }
-                                else
-                                {
-                                    <div class="mb-3">
-                                        <MudButton Variant="Variant.Text"
-                                                   Color="Color.Primary"
-                                                   Size="Size.Small"
-                                                   StartIcon="@Icons.Material.Filled.AddComment"
-                                                   OnClick="@(() => StartAddingCorrection(order.Id, issueIndex))">
-                                            Add Correction
-                                        </MudButton>
-                                    </div>
-                                }
-                            }
-                        </div>
+                                    }
 
-                                                    <!-- Add Issue to existing order -->
-                            @if (IsAddingIssue(order.Id))
-                            {
-                                <MudPaper Elevation="0" Class="order-issue-item px-3 py-2 mb-2" Style="border-color:#66bb6a;">
-                                    <MudTextField T="string"
-                                                  Value="@GetNewIssueText(order.Id)"
-                                                  ValueChanged="@((string? val) => SetNewIssueText(order.Id, val ?? string.Empty))"
-                                                  Placeholder="Describe the new issue..."
-                                                  Variant="Variant.Filled"
-                                                  Margin="Margin.Dense"
-                                                  Class="flex-grow-1 mb-2" />
-                                    <div class="d-flex gap-2">
-                                        <MudButton Variant="Variant.Filled"
-                                                   Color="Color.Success"
-                                                   Size="Size.Small"
-                                                   Disabled="@string.IsNullOrWhiteSpace(GetNewIssueText(order.Id))"
-                                                   OnClick="@(() => SubmitNewIssueAsync(order))">
-                                            Save
-                                        </MudButton>
-                                        <MudButton Variant="Variant.Text"
-                                                   Size="Size.Small"
-                                                   OnClick="@(() => CancelAddingIssue(order.Id))">
-                                            Cancel
-                                        </MudButton>
-                                    </div>
+                                    <MudDivider Class="my-3" />
+
+                                    <!-- Resolve button -->
+                                    <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true"
+                                               Disabled="@(!CanResolveOrder(order))" OnClick="@(() => ResolveOrderAsync(order))">
+                                        <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Class="mr-1" />
+                                        Resolve Work Order
+                                    </MudButton>
+
+                                    @if (!CanResolveOrder(order))
+                                    {
+                                        <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-1" Style="color:#8899aa;">
+                                            Every issue needs at least one correction before resolving.
+                                        </MudText>
+                                    }
                                 </MudPaper>
                             }
-                            else
-                            {
-                                <div class="mb-2">
-                                    <MudButton Variant="Variant.Text"
-                                               Color="Color.Primary"
-                                               Size="Size.Small"
-                                               StartIcon="@Icons.Material.Filled.Add"
-                                               OnClick="@(() => StartAddingIssue(order.Id))">
-                                        Add Issue
-                                    </MudButton>
-                                </div>
-                            }
-
-                          <MudDivider Class="my-3" />
-
-                        <!-- Resolve button -->
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Success"
-                                   FullWidth="true"
-                                   Disabled="@(!CanResolveOrder(order))"
-                                   OnClick="@(() => ResolveOrderAsync(order))">
-                            <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Class="mr-1" />
-                            Resolve Work Order
-                        </MudButton>
-
-                        @if (!CanResolveOrder(order))
-                        {
-                            <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-1" Style="color:#8899aa;">
-                                Every issue needs at least one correction before resolving.
-                            </MudText>
                         }
-                        </MudPaper>
-                    }
+                    </div>
                 }
-            </div>
-        }
-    </MudPaper>
-</MudContainer>
+            </MudPaper>
+        </MudContainer>
 
 @code {
 
@@ -346,6 +362,9 @@
 
     private readonly HashSet<int> _addingIssue = new();
     private readonly Dictionary<int, string> _issueDrafts = new();
+
+    private readonly HashSet<(int OrderId, int IssueIndex, int CorrectionIndex)> _editingCorrections = new();
+    private readonly Dictionary<(int OrderId, int IssueIndex, int CorrectionIndex), string> _correctionEdits = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -534,7 +553,7 @@
         order.IsResolved = true;
         order.IsAddingCorrection = false;
 
-        //  legacy text for existing screens that still read CorrectionNotes
+        // legacy text for existing screens that still read CorrectionNotes
         // order.CorrectionNotes = BuildLegacyCorrectionNotes(order);
         await WorkOrderService.UpdateAsync(order);
         Snackbar.Add($"{order.VesselName} work order resolved.", Severity.Success);
@@ -550,9 +569,11 @@
         while (order.IssueCorrections.Count < order.ReportedIssues.Count) order.IssueCorrections.Add(string.Empty);
         while (order.IssueCorrectionsBy.Count < order.ReportedIssues.Count) order.IssueCorrectionsBy.Add(string.Empty);
 
-        if (order.IssueCorrections.Count > order.ReportedIssues.Count) order.IssueCorrections = order.IssueCorrections.Take(order.ReportedIssues.Count).ToList();
+        if (order.IssueCorrections.Count > order.ReportedIssues.Count) order.IssueCorrections =
+order.IssueCorrections.Take(order.ReportedIssues.Count).ToList();
 
-        if (order.IssueCorrectionsBy.Count > order.ReportedIssues.Count) order.IssueCorrectionsBy = order.IssueCorrectionsBy.Take(order.ReportedIssues.Count).ToList();
+        if (order.IssueCorrectionsBy.Count > order.ReportedIssues.Count) order.IssueCorrectionsBy =
+order.IssueCorrectionsBy.Take(order.ReportedIssues.Count).ToList();
     }
 
     private string GetIssueCorrection(WorkOrder order, int index)
@@ -560,7 +581,8 @@
         EnsureIssueCorrectionCount(order);
 
         // fallback for old record that only have CorrectionNotes
-        if (index == 0 && string.IsNullOrWhiteSpace(order.IssueCorrections[index]) && !string.IsNullOrWhiteSpace(order.CorrectionNotes)) return order.CorrectionNotes;
+        if (index == 0 && string.IsNullOrWhiteSpace(order.IssueCorrections[index]) &&
+!string.IsNullOrWhiteSpace(order.CorrectionNotes)) return order.CorrectionNotes;
 
         return order.IssueCorrections[index];
     }
@@ -570,7 +592,8 @@
         EnsureIssueCorrectionCount(order);
 
         // fallback for old record that only have CorrectionNotes
-        //if (index == 0 && string.IsNullOrWhiteSpace(order.IssueCorrectionsBy[index]) && !string.IsNullOrWhiteSpace(order.CorrectionNotes)) return order.CorrectionNotes;
+        if (index == 0 && string.IsNullOrWhiteSpace(order.IssueCorrectionsBy[index]) &&
+        !string.IsNullOrWhiteSpace(order.CorrectionNotes)) return order.CorrectionNotes;
 
         return order.IssueCorrectionsBy[index];
     }
@@ -658,7 +681,7 @@
 
         order.ReportedIssues.Add(text);
 
-        //keep legacy correction lists in sync 
+        //keep legacy correction lists in sync
         order.IssueCorrections ??= new();
         order.IssueCorrectionsBy ??= new();
         order.IssueCorrections.Add(string.Empty);
@@ -677,7 +700,50 @@
         OpenOrders
     }
 
-    
+    //helper methods for editing, per Kris
+    private bool IsEditingCorrection(int orderId, int issueIndex, int correctionIndex) =>
+_editingCorrections.Contains((orderId, issueIndex, correctionIndex));
+
+    private void StartEditingCorrection(WorkOrder order, int issueIndex, int correctionIndex)
+    {
+        _editingCorrections.Add((order.Id, issueIndex, correctionIndex));
+        var thread = GetCorrectionThread(order, issueIndex);
+        _correctionEdits[(order.Id, issueIndex, correctionIndex)] = thread[correctionIndex].Text;
+    }
+
+    private void CancelEditingCorrection(int orderId, int issueIndex, int correctionIndex)
+    {
+        _editingCorrections.Remove((orderId, issueIndex, correctionIndex));
+        _correctionEdits.Remove((orderId, issueIndex, correctionIndex));
+    }
+
+    private string GetCorrectionEditText(int orderId, int issueIndex, int correctionIndex)
+        => _correctionEdits.TryGetValue((orderId, issueIndex, correctionIndex), out var text) ? text : string.Empty;
+
+    private void SetCorrectionEditText(int orderId, int issueIndex, int correctionIndex, string value)
+        => _correctionEdits[(orderId, issueIndex, correctionIndex)] = value;
+
+
+    private async Task SaveCorrectionAsync(WorkOrder order, int issueIndex, int correctionIndex)
+    {
+        var newText = GetCorrectionEditText(order.Id, issueIndex, correctionIndex);
+        if (string.IsNullOrWhiteSpace(newText)) return;
+
+        var thread = GetCorrectionThread(order, issueIndex);
+        if (correctionIndex < thread.Count)
+        {
+            thread[correctionIndex].Text = newText;
+        }
+
+        await WorkOrderService.UpdateAsync(order);
+
+        CancelEditingCorrection(order.Id, issueIndex, correctionIndex);
+
+        Snackbar.Add("Correction updated.", Severity.Success);
+        await LoadWorkOrdersAsync();
+    }
+
+
 }
 
 <style>
@@ -714,7 +780,7 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         color: #fff;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .header-tab {
@@ -728,13 +794,14 @@
         cursor: pointer;
     }
 
-        .header-tab.active {
-            border-bottom: 3px solid #f59e0b;
-        }
+    .header-tab.active {
+        border-bottom: 3px solid #f59e0b;
+    }
 
     .request-card {
         border-radius: 14px;
-        background: #f8f9fb; @*f8f9fb*@
+        background: #f8f9fb;
+        @*f8f9fb*@
     }
     }
 
@@ -836,8 +903,8 @@
     }
 
     .issue-correction-list {
-    display: flex;
-    flex-direction: column;
+        display: flex;
+        flex-direction: column;
     }
 
     .issue-box {
@@ -873,6 +940,6 @@
     }
 
     .update-correction-btn {
-    border-radius: 8px;
+        border-radius: 8px;
     }
 </style>

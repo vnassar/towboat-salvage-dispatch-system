@@ -210,8 +210,9 @@
                                                     Edit Work Order
                                                 </MudText>
 
-                                                                                                <div class="wo-detail-section mb-3">
-                                                    <MudText Typo="Typo.subtitle2" Class="font-weight-bold mb-2">Issues &amp; Corrections</MudText>
+                                                <div class="wo-detail-section mb-3">
+                                                    <MudText Typo="Typo.subtitle2" Class="font-weight-bold mb-2">Issues &amp;
+                                                        Corrections</MudText>
 
                                                     <div class="issue-correction-list">
                                                         @for (var i = 0; i < draft.ReportedIssues.Count; i++)
@@ -693,15 +694,15 @@
     private static WorkOrderEditModel CreateEditModel(WorkOrder order)
     {
         return new WorkOrderEditModel
-    {
-        ReportedIssues = order.ReportedIssues.Count == 0
-            ? new List<string> { string.Empty }
-            : order.ReportedIssues.Select(x => x).ToList(),
-        CorrectionNotes = order.CorrectionNotes ?? string.Empty,
-        IsResolved = order.IsResolved,
-        Engine1Hours = order.Engine1Hours ?? string.Empty,
-        Engine2Hours = order.Engine2Hours ?? string.Empty
-    };
+        {
+            ReportedIssues = order.ReportedIssues.Count == 0
+                ? new List<string> { string.Empty }
+                : order.ReportedIssues.Select(x => x).ToList(),
+            CorrectionNotes = order.CorrectionNotes ?? string.Empty,
+            IsResolved = order.IsResolved,
+            Engine1Hours = order.Engine1Hours ?? string.Empty,
+            Engine2Hours = order.Engine2Hours ?? string.Empty
+        };
     }
 
     private void UpdateIssue(int orderId, int index, string value)
