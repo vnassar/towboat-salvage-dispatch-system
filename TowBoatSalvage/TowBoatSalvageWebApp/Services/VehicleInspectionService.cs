@@ -45,5 +45,22 @@ namespace TowBoatSalvageWebApp.Services
 
             return await query.OrderByDescending(v => v.DateOfInspection).ToListAsync();
         }
+
+        public async Task<VehicleInspection?> GetInspectionForPdfByIdAsync(int id)
+        {
+            return await _db.VehicleInspection
+                .AsNoTracking()
+                .Include(v => v.InitialInspection)
+                .Include(v => v.CaptainsPersonalItems)
+                .Include(v => v.SafetyDevices)
+                .Include(v => v.MountedLights)
+                .Include(v => v.Placards)
+                .Include(v => v.Navigation)
+                .Include(v => v.VesselEquipment)
+                .Include(v => v.Salvage)
+                .Include(v => v.Oil)
+                .Include(v => v.OperationalCheck)
+                .FirstOrDefaultAsync(v => v.Id == id);
+        }
     }
 }

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TowBoatSalvageWebApp.Data;
 
@@ -10,9 +11,11 @@ using TowBoatSalvageWebApp.Data;
 namespace TowBoatSalvageWebApp.Migrations.SalvageDb
 {
     [DbContext(typeof(SalvageDbContext))]
-    partial class SalvageDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260726224814_VehicleInspectionbHasBeenDownloaded")]
+    partial class VehicleInspectionbHasBeenDownloaded
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.5");

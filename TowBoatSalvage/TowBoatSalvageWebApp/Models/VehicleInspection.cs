@@ -6,6 +6,7 @@
         public string VesselNumber { get; set; } = string.Empty;
         public string EmployeeOrCaptain { get; set; } = string.Empty;
         public DateTime? DateOfInspection { get; set; } = DateTime.Now;
+        public bool bHasBeenDownloaded { get;set;} = false;
 
         public InitialInspection InitialInspection { get; set; } = new();
         public CaptainsPersonalItems CaptainsPersonalItems { get; set; } = new();
