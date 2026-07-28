@@ -165,11 +165,13 @@
                                         </MudGrid>
                                     </MudPaper>
 
+
                                     <MudText Typo="Typo.subtitle1" Class="mb-2 font-weight-bold">
                                         <MudIcon Icon="@Icons.Material.Outlined.ErrorOutline" Size="Size.Small"
-                                                 Class="mr-1 issue-alert-icon" />
+                                                    Class="mr-1 issue-alert-icon" />
                                         Reported Issues (@order.ReportedIssues.Count)
                                     </MudText>
+                                    
 
                                     <div class="issue-correction-list">
                                         @for (var i = 0; i < order.ReportedIssues.Count; i++)
@@ -225,7 +227,7 @@
                                                             <MudText Typo="Typo.caption" Class="correction-label">
                                                                 @correction.Author
                                                             </MudText>
-                                                            <div class="d-flex align-center">
+                                                            <div class="">
                                                                 <MudText Typo="Typo.caption" Style="color:#8899aa;">
                                                                 @correction.CreatedAtUtc.ToLocalTime().ToString("M/d/yyyy h:mm tt")
                                                             </MudText>
@@ -308,7 +310,8 @@
                                     }
                                     else
                                     {
-                                        <div class="mb-2">
+                                        //moving to far right because kris has fat fingers
+                                        <div class="d-flex justify-end mb-2">
                                             <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
                                                        StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => StartAddingIssue(order.Id))">
                                                 Add Issue
