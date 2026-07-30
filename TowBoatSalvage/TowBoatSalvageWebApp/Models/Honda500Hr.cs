@@ -11,6 +11,7 @@ namespace TowBoatSalvageWebApp.Models
         public DateTime DateCompleted {get;set;} = DateTime.UtcNow;
         public List<ServiceDescription> ServiceDescriptions {get;set;} = new();
         public string CompletedBy {get;set;} = string.Empty;
+        public bool bIsResolved {get;set;} = false;
     }
 
     public class ServiceDescription

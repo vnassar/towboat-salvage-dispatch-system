@@ -1,0 +1,195 @@
+
+    .maintenance-page {
+        background: #eef0f3;
+        min-height: 100vh;
+    }
+
+    .maintenance-shell {
+        max-width: 450px;
+        min-height: 100vh;
+        background: #eef0f3;
+    }
+
+    .maintenance-header {
+        background: #12243f;
+        color: #fff;
+    }
+
+    .header-title {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffb300;
+        font-weight: 700;
+    }
+
+    .header-title-text {
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .header-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        color: #fff;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .header-tab {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 14px 8px 12px 8px;
+        font-weight: 600;
+        opacity: 0.95;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+    }
+
+    .header-tab.active {
+        border-bottom: 3px solid #f59e0b;
+    }
+
+    .request-card {
+        border-radius: 14px;
+        background: #f8f9fb;
+    }
+    
+
+    .add-issue-btn {
+        min-height: 52px;
+        border-radius: 10px;
+        background-color: #8f96a3 !important;
+        color: #fff !important;
+    }
+
+    .no-issues-box {
+        border-radius: 10px;
+        background: #eef1f5;
+        color: #6b7280;
+    }
+
+    .issue-row {
+        border-radius: 10px;
+        background: #f3f6fa;
+        border: 1px solid #d4dce8;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .issue-remove-btn {
+        color: #8ea0b5;
+    }
+
+    .submit-btn {
+        min-height: 56px;
+        border-radius: 12px;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #101828 !important;
+    }
+
+    .open-order-card {
+        border-radius: 12px;
+        background: #f8f9fb;
+    }
+
+    .order-boat-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: #eef1f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6b7280;
+    }
+
+    .order-date {
+        color: #61708a;
+        display: flex;
+        align-items: center;
+    }
+
+    .engines-box {
+        border-radius: 8px;
+        background: #edf1f7;
+    }
+
+    .engine-label {
+        color: #5f6f86;
+        font-weight: 700;
+        letter-spacing: .6px;
+    }
+
+    .engine-hrs {
+        color: #5f6f86;
+        font-size: .9rem;
+    }
+
+    .issue-alert-icon {
+        color: #f59e0b;
+    }
+
+    .order-issue-item {
+        border-radius: 8px;
+        background: #f8f6f0;
+        border: 1px solid #f1e3b8;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .issue-dot {
+        color: #e9ad00;
+        font-size: 1.2rem;
+        line-height: 1;
+    }
+
+    .add-correction-btn {
+        border-radius: 8px;
+        background: #e8eef9 !important;
+        color: #1d4ed8 !important;
+    }
+
+    .issue-correction-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .issue-box {
+        border-radius: 10px;
+        background: #f8f6f0;
+        border: 1px solid #f1e3b8;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .correction-box {
+        margin-left: 22px;
+        border-radius: 10px;
+        background: #edf4ff;
+        border: 1px solid #cddffc;
+        position: relative;
+    }
+
+    .correction-box::before {
+        content: "";
+        position: absolute;
+        left: -14px;
+        top: 16px;
+        width: 12px;
+        border-top: 2px dashed #b7c7e6;
+    }
+
+    .correction-label {
+        color: #425b84;
+        font-weight: 700;
+        letter-spacing: .2px;
+    }
+
+    .update-correction-btn {
+        border-radius: 8px;
+    }
