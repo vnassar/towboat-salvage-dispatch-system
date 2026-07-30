@@ -36,6 +36,8 @@ builder.Services.AddSignalR();
 //user service to keep track of names
 builder.Services.AddScoped<UserService>();
 
+builder.Services.AddScoped<Honda500HrService>();
+
 //stripe
 StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 builder.Services.AddScoped<StripePaymentService>();

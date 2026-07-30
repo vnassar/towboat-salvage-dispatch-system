@@ -16,6 +16,7 @@ namespace TowBoatSalvageWebApp.Data
         public DbSet<TowBoatPorts> Ports { get; set; }
         public DbSet<TowBoatCaptains> Captains { get; set; }
         public DbSet<FuelLogEntry> FuelLogs { get; set; }
+        public DbSet<Honda500Hr> Honda500HrServices {get;set;}
         public DbSet<WorkOrder> WorkOrder { get; set; }
 
         public DbSet<DocumentSignatureRequest> DocumentSignatureRequests { get; set; }
@@ -102,8 +103,14 @@ namespace TowBoatSalvageWebApp.Data
                         v => JsonSerializer.Deserialize<Dictionary<int, List<IssueCorrection>>>(
                             JsonSerializer.Serialize(v, (JsonSerializerOptions?)null), (JsonSerializerOptions?)null)
                             ?? new Dictionary<int, List<IssueCorrection>>()
-                    )
-                );
+                )
+            );
+
+            modelBuilder.Entity<Honda500Hr>()
+                .HasMany(h => h.ServiceDescriptions)
+                .WithOne()  // ServiceDescription doesn't need to reference back to Honda500Hr
+                .HasForeignKey("Honda500HrId")  // Foreign key in ServiceDescription table
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

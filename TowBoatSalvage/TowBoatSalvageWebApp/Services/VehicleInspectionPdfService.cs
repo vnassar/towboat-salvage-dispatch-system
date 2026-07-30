@@ -30,7 +30,7 @@ namespace TowBoatSalvageWebApp.Services
                     page.Header().Column(col =>
                     {
                         col.Spacing(2);
-                        col.Item().Text("Vehicle Inspection Report")
+                        col.Item().Text("AMS Vessel Equipment Inspection Checklist")
                             .SemiBold().FontSize(18).AlignCenter();
                         col.Item().Text("American Marine Services, LLC")
                             .FontSize(10).FontColor(Colors.Grey.Darken1).AlignCenter();
@@ -70,7 +70,7 @@ namespace TowBoatSalvageWebApp.Services
                                 c.Item().Text(text =>
                                 {
                                     text.Span("Inspection ID: ").SemiBold();
-                                    text.Span($"VI-{inspection.Id:D4}");
+                                    text.Span($"{inspection.Id:D4}");
                                 });
                             });
                         });

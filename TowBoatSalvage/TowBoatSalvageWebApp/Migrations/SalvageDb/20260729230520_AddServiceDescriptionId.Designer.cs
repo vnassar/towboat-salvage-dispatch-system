@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TowBoatSalvageWebApp.Data;
 
@@ -10,9 +11,11 @@ using TowBoatSalvageWebApp.Data;
 namespace TowBoatSalvageWebApp.Migrations.SalvageDb
 {
     [DbContext(typeof(SalvageDbContext))]
-    partial class SalvageDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260729230520_AddServiceDescriptionId")]
+    partial class AddServiceDescriptionId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.5");
@@ -742,29 +745,6 @@ namespace TowBoatSalvageWebApp.Migrations.SalvageDb
                     b.ToTable("Rows");
                 });
 
-            modelBuilder.Entity("TowBoatSalvageWebApp.Models.ServiceDescription", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("Honda500HrId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("bServiceCompleted")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Honda500HrId");
-
-                    b.ToTable("ServiceDescription");
-                });
-
             modelBuilder.Entity("TowBoatSalvageWebApp.Models.TowBoatCaptains", b =>
                 {
                     b.Property<int>("Id")
@@ -1016,6 +996,35 @@ namespace TowBoatSalvageWebApp.Migrations.SalvageDb
                     b.Navigation("CreditCard");
                 });
 
+            modelBuilder.Entity("TowBoatSalvageWebApp.Models.Honda500Hr", b =>
+                {
+                    b.OwnsMany("TowBoatSalvageWebApp.Models.ServiceDescription", "ServiceDescriptions", b1 =>
+                        {
+                            b1.Property<int>("Honda500HrId")
+                                .HasColumnType("INTEGER");
+
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("INTEGER");
+
+                            b1.Property<string>("Description")
+                                .IsRequired()
+                                .HasColumnType("TEXT");
+
+                            b1.Property<bool>("bServiceCompleted")
+                                .HasColumnType("INTEGER");
+
+                            b1.HasKey("Honda500HrId", "Id");
+
+                            b1.ToTable("ServiceDescription");
+
+                            b1.WithOwner()
+                                .HasForeignKey("Honda500HrId");
+                        });
+
+                    b.Navigation("ServiceDescriptions");
+                });
+
             modelBuilder.Entity("TowBoatSalvageWebApp.Models.SalvageCell", b =>
                 {
                     b.HasOne("TowBoatSalvageWebApp.Models.SalvageColumn", "Column")
@@ -1044,14 +1053,6 @@ namespace TowBoatSalvageWebApp.Migrations.SalvageDb
                         .IsRequired();
 
                     b.Navigation("Cell");
-                });
-
-            modelBuilder.Entity("TowBoatSalvageWebApp.Models.ServiceDescription", b =>
-                {
-                    b.HasOne("TowBoatSalvageWebApp.Models.Honda500Hr", null)
-                        .WithMany("ServiceDescriptions")
-                        .HasForeignKey("Honda500HrId")
-                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("TowBoatSalvageWebApp.Models.VehicleInspection", b =>
@@ -1135,11 +1136,6 @@ namespace TowBoatSalvageWebApp.Migrations.SalvageDb
                     b.Navigation("Salvage");
 
                     b.Navigation("VesselEquipment");
-                });
-
-            modelBuilder.Entity("TowBoatSalvageWebApp.Models.Honda500Hr", b =>
-                {
-                    b.Navigation("ServiceDescriptions");
                 });
 
             modelBuilder.Entity("TowBoatSalvageWebApp.Models.SalvageCell", b =>

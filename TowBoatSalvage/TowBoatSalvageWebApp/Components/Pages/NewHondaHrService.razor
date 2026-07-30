@@ -1,0 +1,135 @@
+@page "/NewHondaHrService"
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using TowBoatSalvageWebApp.Data
+@using TowBoatSalvageWebApp.Services
+@inject Honda500HrService Honda500HrService
+@inject UserManager<ApplicationUser> UserManager
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<PageTitle>AMS Vessel Inspection</PageTitle>
+
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-0">
+
+    <TowBoatSalvageWebApp.Components.Pages.NavBar.NavigationBar />
+
+    <MudPaper Elevation="0" Square="true">
+        <div class="header">
+            <MudStack Row="true" Justify="Justify.Center" AlignItems="AlignItems.Center" Class="d-flex my-1">
+                <MudIcon Icon="@Icons.Material.Filled.DirectionsBoat" Class="mx-5" />
+                <MudText Typo="Typo.h5" Class="mx-0">Honda 500HR Service</MudText>
+            </MudStack>
+        </div>
+
+        <div class="initial-inspection">
+            <MudPaper Elevation="2" Class="my-1 pa-4 mx-1">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="string" Class="fuel-log-select" Label="Select Boat" Variant="Variant.Outlined" @bind-Value="selectedBoat"
+                        Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.DirectionsBoat"
+                        OpenIcon="@Icons.Material.Filled.KeyboardArrowDown"
+                        CloseIcon="@Icons.Material.Filled.KeyboardArrowUp" Required="true">
+                        @foreach (var boat in boats)
+                        {
+                            <MudSelectItem Value="@boat">@boat</MudSelectItem>
+                        }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="string" Label="Crew Member" Variant="Variant.Outlined" @bind-Value="selectedCrew" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person" Required="true">
+                        @foreach (var crew in crewMembers)
+                        {
+                            <MudSelectItem Value="@crew">@crew</MudSelectItem>
+                        }
+                    </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker Label="Date" Variant="Variant.Outlined" Class="my-1" @bind-Date="_dateOfInspection" />
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+               
+        </div>
+        
+
+        <div class="submit">
+            <MudPaper Elevation="0" Class=" d-flex justify-center my-2">
+                <MudButton OnClick="StartNew500HrServiceAsync" ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled">Start New 500Hr Service</MudButton>
+            </MudPaper>
+        </div>
+    </MudPaper>
+</MudContainer>
+
+
+
+
+
+
+
+
+
+@code {
+
+private string? selectedBoat;
+    private string? selectedCrew;
+    private readonly List<string> boats = new()
+    {
+        "Towboat 1",
+        "Towboat 2",
+        "Towboat 3",
+        "Towboat 4",
+        "Towboat 5",
+        "Towboat 6",
+        "Towboat 7",
+        "Towboat 8",
+        "Towboat 9",
+        "Towboat 10",
+        "Towboat 11",
+        "Towboat 12",
+        "Towboat 14",
+        "Towboat 16",
+    };
+
+    private readonly List<string> crewMembers = new();
+    private DateTime? _dateOfInspection = DateTime.Now;
+
+    private int _engineHours1;
+    private int _engineHours2;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CreateFuelList();
+    }
+
+    private async Task CreateFuelList()
+    {
+        var users = await UserManager.Users.OrderBy(u => u.Email).ToListAsync();
+
+        foreach (var user in users)
+        {
+            crewMembers.Add(user.Name);
+        }
+    }
+
+    private async Task StartNew500HrServiceAsync()
+    {
+        if (selectedCrew is null) return;
+
+        try
+        {
+            var hondaService = await Honda500HrService.CreateNewHonda500HrServiceAsync(selectedCrew, _engineHours1, _engineHours2);
+
+            var url = $"{Nav.BaseUri}Honda500HrService/{hondaService.Id}";
+
+            Nav.NavigateTo($"{url}", true);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error starting new 500Hr service: {ex.Message}", Severity.Error);
+            return;
+        }
+    }
+
+}
