@@ -12,7 +12,7 @@
 <PageTitle>AMS Vessel Inspection</PageTitle>
 
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-0">
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-0 maintenance-page">
 
     <TowBoatSalvageWebApp.Components.Pages.NavBar.NavigationBar />
 
@@ -28,16 +28,17 @@
                 <div class="@GetTabClass(HondaServiceTab.NewRequest)"
                      @onclick="() => SetTab(HondaServiceTab.NewRequest)">
                     <MudIcon Icon="@Icons.Material.Filled.Anchor" Size="Size.Small" Class="mr-1" />
-                    <span>New Request</span>
+                    <span>New</span>
                 </div>
 
                 <div class="@GetTabClass(HondaServiceTab.OpenHondaServices)"
                      @onclick="() => SetTab(HondaServiceTab.OpenHondaServices)">
                     <MudIcon Icon="@Icons.Material.Filled.Build" Size="Size.Small" Class="mr-1" />
-                    <span>Open Orders</span>
+                    <span>Open Services</span>
                     <MudBadge Content="@OpenServicesCount" Color="Color.Warning" Class="ml-2" />
                 </div>
             </div>
+        </MudPaper>
 
             @if (ActiveTab == HondaServiceTab.NewRequest)
             {
@@ -69,6 +70,14 @@
                         </MudItem>
                     </MudGrid>
 
+                    <MudSelect T="string" Label="Select Crew" Variant="Variant.Filled" Margin="Margin.Dense" Class="mb-3"
+                               @bind-Value="selectedCrew">
+                        @foreach (var crew in crewMembers)
+                        {
+                            <MudSelectItem Value="@crew">@crew</MudSelectItem>
+                        }
+                    </MudSelect>
+
                     <MudDivider Class="my-3" />
 
                     <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" Class="submit-btn"
@@ -83,7 +92,8 @@
                 <div class="open-orders-wrap pa-4">
                     <div class="d-flex align-center justify-space-between mb-3">
                         <MudText Typo="Typo.h5" Class="font-weight-bold">Needs Attention</MudText>
-                        <MudChip T="int" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">@OpenServicesCount Orders
+                        <MudChip T="int" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">@OpenServicesCount
+                            Orders
                         </MudChip>
                     </div>
 
@@ -114,12 +124,12 @@
                                 <MudPaper Elevation="0" Class="engines-box pa-3 mb-3">
                                     <MudGrid>
                                         <MudItem xs="6">
-                                            <MudText Typo="Typo.caption" Class="engine-label">PORT ENGINE</MudText>
+                                            <MudText Typo="Typo.caption" Class="engine-label">ENGINE 1</MudText>
                                             <MudText Typo="Typo.h6"><strong>@order.EngineHours1</strong> <span
                                                 class="engine-hrs">hrs</span></MudText>
                                             </MudItem>
                                             <MudItem xs="6">
-                                                <MudText Typo="Typo.caption" Class="engine-label">STBD ENGINE</MudText>
+                                                <MudText Typo="Typo.caption" Class="engine-label">ENGINE 2</MudText>
                                                 <MudText Typo="Typo.h6"><strong>@order.EngineHours2</strong> <span
                                                     class="engine-hrs">hrs</span></MudText>
                                                 </MudItem>
@@ -140,60 +150,6 @@
                         </div>
                     }
                 </MudPaper>
-            </MudPaper>
-
-            <div class="previous-logic">
-                <MudPaper Elevation="0" Square="true">
-                    <div class="header">
-                        <MudStack Row="true" Justify="Justify.Center" AlignItems="AlignItems.Center" Class="d-flex my-1">
-                            <MudIcon Icon="@Icons.Material.Filled.DirectionsBoat" Class="mx-5" />
-                            <MudText Typo="Typo.h5" Class="mx-0">Honda 500HR Service</MudText>
-                        </MudStack>
-                    </div>
-
-                    <div class="initial-inspection">
-                        <MudPaper Elevation="2" Class="my-1 pa-4 mx-1">
-                            <MudGrid Spacing="2">
-                                <MudItem xs="12" sm="6">
-                                    <MudSelect T="string" Class="fuel-log-select" Label="Select Boat" Variant="Variant.Outlined"
-                                               @bind-Value="selectedBoat" Adornment="Adornment.Start"
-                                               AdornmentIcon="@Icons.Material.Filled.DirectionsBoat"
-                                               OpenIcon="@Icons.Material.Filled.KeyboardArrowDown"
-                                               CloseIcon="@Icons.Material.Filled.KeyboardArrowUp" Required="true">
-                                        @foreach (var boat in boats)
-                                        {
-                                            <MudSelectItem Value="@boat">@boat</MudSelectItem>
-                                        }
-                                    </MudSelect>
-                                </MudItem>
-                                <MudItem xs="12" sm="6">
-                                    <MudSelect T="string" Label="Crew Member" Variant="Variant.Outlined"
-                                               @bind-Value="selectedCrew" Adornment="Adornment.Start"
-                                               AdornmentIcon="@Icons.Material.Filled.Person" Required="true">
-                                        @foreach (var crew in crewMembers)
-                                        {
-                                            <MudSelectItem Value="@crew">@crew</MudSelectItem>
-                                        }
-                                    </MudSelect>
-                                </MudItem>
-                                <MudItem xs="12" sm="6">
-                                    <MudDatePicker Label="Date" Variant="Variant.Outlined" Class="my-1"
-                                                   @bind-Date="_dateOfInspection" />
-                                </MudItem>
-                            </MudGrid>
-                        </MudPaper>
-
-                    </div>
-
-        
-                    <div class="submit">
-                        <MudPaper Elevation="0" Class=" d-flex justify-center my-2">
-                            <MudButton OnClick="StartNew500HrServiceAsync" ButtonType="ButtonType.Submit" Color="Color.Primary"
-                                       Variant="Variant.Filled">Start New 500Hr Service</MudButton>
-                        </MudPaper>
-                    </div>
-                </MudPaper>
-            </div>
         </MudContainer>
 
 
@@ -290,6 +246,7 @@
     }
 }
 
+
 <style>
     .maintenance-page {
         background: #eef0f3;
@@ -346,7 +303,6 @@
         border-radius: 14px;
         background: #f8f9fb;
         @*f8f9fb*@
-    }
     }
 
     .add-issue-btn {

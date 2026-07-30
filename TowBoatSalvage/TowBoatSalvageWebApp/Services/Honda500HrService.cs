@@ -68,7 +68,7 @@ namespace TowBoatSalvageWebApp.Services
                 BoatNumber = user,
                 EngineHours1 = engineHours1,
                 EngineHours2 = engineHours2,
-                DateCompleted = DateTime.UtcNow,
+                DateCompleted = DateTime.Now,
                 ServiceDescriptions = new List<ServiceDescription>
                 {
                     new ServiceDescription
