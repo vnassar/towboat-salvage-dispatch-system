@@ -16,58 +16,134 @@
 
     <TowBoatSalvageWebApp.Components.Pages.NavBar.NavigationBar />
 
-    <MudPaper Elevation="0" Square="true">
-        <div class="header">
-            <MudStack Row="true" Justify="Justify.Center" AlignItems="AlignItems.Center" Class="d-flex my-1">
-                <MudIcon Icon="@Icons.Material.Filled.DirectionsBoat" Class="mx-5" />
-                <MudText Typo="Typo.h5" Class="mx-0">Honda 500HR Service</MudText>
-            </MudStack>
-        </div>
+    <MudPaper Elevation="0" Square="true" Class="maintenance-shell mx-auto">
+        <!-- Header -->
+        <MudPaper Elevation="0" Square="true" Class="maintenance-header px-4 pt-6 pb-2">
+            <div class="header-title">
+                <MudIcon Icon="@Icons.Material.Filled.DirectionsBoat" Class="mr-2" />
+                <MudText Typo="Typo.h5" Class="header-title-text">Fleet Maintenance</MudText>
+            </div>
+        </MudPaper>
 
-        <div class="initial-inspection">
-            <MudPaper Elevation="2" Class="my-1 pa-4 mx-1">
-                <MudGrid Spacing="2">
-                    <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.body1">@_honda.BoatNumber</MudText>
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.body1">@_honda.CompletedBy</MudText>
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.body1">@_honda.DateCompleted.ToString("d")</MudText>
-                    </MudItem>
-                </MudGrid>
-            </MudPaper>
-            <MudPaper Elevation="2" Class="my-1 pa-4 mx-1">
-                <MudGrid Spacing="2">
-                    @if (services != null)
-                    {
-                        @foreach (var service in services)
-                        {
-                            <MudItem xs="12" sm="6">
-                                <MudCheckBox Label="@service.Description" Color="Color.Primary" UncheckedColor="Color.Default" Value="@service.bServiceCompleted" ValueChanged="@((bool val) => SaveProgressAsync(service, val))"/>
+        <div class="boat-info">
+            <MudPaper Elevation="2" Class="open-order-card pa-3 mb-0">
+                <div class="d-flex justify-space-between">
+                    <div class="d-flex align-start mb-2">
+                        <div class="order-boat-icon mr-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.DirectionsBoat" />
+                        </div>
+                        <div>
+                            <MudText Typo="Typo.h5" Class="font-weight-bold">@_honda.BoatNumber</MudText>
+                            <MudText Typo="Typo.body2" Class="order-date">
+                                <MudIcon Icon="@Icons.Material.Outlined.Schedule" Size="Size.Small" Class="mr-1" />
+                                @_honda.DateCompleted
+                            </MudText>
+                        </div>
+                    </div>
+                </div>
+
+                <MudPaper Elevation="0" Class="engines-box pa-3 mb-3">
+                    <MudGrid>
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.caption" Class="engine-label">ENGINE 1</MudText>
+                            <MudText Typo="Typo.h6"><strong>@_honda.EngineHours1</strong> <span
+                                class="engine-hrs">hrs</span></MudText>
                             </MudItem>
-                        }
-                    }
-                </MudGrid>
-            </MudPaper>
-        </div>
-        
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption" Class="engine-label">ENGINE 2</MudText>
+                                <MudText Typo="Typo.h6"><strong>@_honda.EngineHours2</strong> <span
+                                    class="engine-hrs">hrs</span></MudText>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    </MudPaper>
+                </div>
 
-        @* <div class="submit">
+                <div class="questions-for-mechanic">
+                    <MudPaper Elevation="2" Class="questions-card my-1 pa-4 mx-1">
+                        @if (services != null)
+                        {
+                            @foreach (var service in services)
+                            {
+                                <MudCheckBox Label="@service.Description" Color="Color.Primary"
+                                            UncheckedColor="Color.Default" Value="@service.bServiceCompleted"
+                                            ValueChanged="@((bool val) => SaveProgressAsync(service, val))" 
+                                            Class=""/>
+                                <MudDivider Class="my-3" />
+                            }
+                        }
+                            <!-- Resolve button -->
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true"
+                                OnClick="@(() => CompleteHondaService(_honda))">
+                            <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Class="mr-1" />
+                            Complete Honda Service
+                        </MudButton>
+                    </MudPaper>
+                </div>
+                
+    </MudPaper>
+
+    
+
+            <div class="previous-logic">
+                <MudPaper Elevation="0" Square="true">
+                    <div class="header">
+                        <MudStack Row="true" Justify="Justify.Center" AlignItems="AlignItems.Center" Class="d-flex my-1">
+                            <MudIcon Icon="@Icons.Material.Filled.DirectionsBoat" Class="mx-5" />
+                            <MudText Typo="Typo.h5" Class="mx-0">Honda 500HR Service</MudText>
+                        </MudStack>
+                    </div>
+
+                    <div class="initial-inspection">
+                        <MudPaper Elevation="2" Class="my-1 pa-4 mx-1">
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" sm="6">
+                                    <MudText Typo="Typo.body1">@_honda.BoatNumber</MudText>
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudText Typo="Typo.body1">@_honda.CompletedBy</MudText>
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudText Typo="Typo.body1">@_honda.DateCompleted.ToString("d")</MudText>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                        <MudPaper Elevation="2" Class="my-1 pa-4 mx-1">
+                            <MudGrid Spacing="2">
+                                @if (services != null)
+                                {
+                                    @foreach (var service in services)
+                                    {
+                                        <MudItem xs="12" sm="6">
+                                            <MudCheckBox Label="@service.Description" Color="Color.Primary"
+                                                         UncheckedColor="Color.Default" Value="@service.bServiceCompleted"
+                                                         ValueChanged="@((bool val) => SaveProgressAsync(service, val))" />
+                                        </MudItem>
+                                    }
+                                }
+                            </MudGrid>
+                        </MudPaper>
+                    </div>
+
+        
+                    @* <div class="submit">
             <MudPaper Elevation="0" Class=" d-flex justify-center my-2">
-                <MudButton OnClick="StartNew500HrServiceAsync" ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled">Start New 500Hr Service</MudButton>
+                <MudButton OnClick="StartNew500HrServiceAsync" ButtonType="ButtonType.Submit" Color="Color.Primary"
+            Variant="Variant.Filled">Start New 500Hr Service</MudButton>
             </MudPaper>
         </div> *@
-    </MudPaper>
-</MudContainer>
+                </MudPaper>
+            </div>
+
+    
+        </MudContainer>
 
 
 @code {
-    [Parameter] public string? Id {get;set;}
+    [Parameter] public string? Id { get; set; }
 
     private Honda500Hr _honda = new();
-    
+
     private List<ServiceDescription>? services;
     protected override async Task OnParametersSetAsync()
     {
@@ -84,7 +160,7 @@
         try
         {
             await Honda500HrService.UpdateServiceDescriptionAsync(_honda);
-            
+
         }
         catch (Exception ex)
         {
@@ -92,5 +168,218 @@
         }
     }
 
-
+    private async Task CompleteHondaService(Honda500Hr honda)
+    {
+        try
+        {
+            honda.bIsResolved = true;
+            await Honda500HrService.UpdateServiceDescriptionAsync(honda);
+            Snackbar.Add($"Honda service completed successfully.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error completing Honda service: {ex.Message}", Severity.Error);
+        }
+    }
 }
+
+<style>
+    .maintenance-page {
+        background: #eef0f3;
+        min-height: 100vh;
+    }
+
+    .maintenance-shell {
+        max-width: 450px;
+        min-height: 100vh;
+        background: #eef0f3;
+    }
+
+    .maintenance-header {
+        background: #12243f;
+        color: #fff;
+    }
+
+    .header-title {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffb300;
+        font-weight: 700;
+    }
+
+    .header-title-text {
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .header-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        color: #fff;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .header-tab {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 14px 8px 12px 8px;
+        font-weight: 600;
+        opacity: 0.95;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+    }
+
+    .header-tab.active {
+        border-bottom: 3px solid #f59e0b;
+    }
+
+    .request-card {
+        border-radius: 14px;
+        background: #f8f9fb;
+        @*f8f9fb*@
+    }
+
+    .add-issue-btn {
+        min-height: 52px;
+        border-radius: 10px;
+        background-color: #8f96a3 !important;
+        color: #fff !important;
+    }
+
+    .no-issues-box {
+        border-radius: 10px;
+        background: #eef1f5;
+        color: #6b7280;
+    }
+
+    .issue-row {
+        border-radius: 10px;
+        background: #f3f6fa;
+        border: 1px solid #d4dce8;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .issue-remove-btn {
+        color: #8ea0b5;
+    }
+
+    .submit-btn {
+        min-height: 56px;
+        border-radius: 12px;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #101828 !important;
+    }
+
+    .open-order-card {
+        border-radius: 12px;
+        background: #f8f9fb;
+    }
+
+    .questions-card {
+        border-radius: 12px;
+    }
+
+    .order-boat-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: #eef1f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6b7280;
+    }
+
+    .order-date {
+        color: #61708a;
+        display: flex;
+        align-items: center;
+    }
+
+    .engines-box {
+        border-radius: 8px;
+        background: #edf1f7;
+    }
+
+    .engine-label {
+        color: #5f6f86;
+        font-weight: 700;
+        letter-spacing: .6px;
+    }
+
+    .engine-hrs {
+        color: #5f6f86;
+        font-size: .9rem;
+    }
+
+    .issue-alert-icon {
+        color: #f59e0b;
+    }
+
+    .order-issue-item {
+        border-radius: 8px;
+        background: #f8f6f0;
+        border: 1px solid #f1e3b8;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .issue-dot {
+        color: #e9ad00;
+        font-size: 1.2rem;
+        line-height: 1;
+    }
+
+    .add-correction-btn {
+        border-radius: 8px;
+        background: #e8eef9 !important;
+        color: #1d4ed8 !important;
+    }
+
+    .issue-correction-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .issue-box {
+        border-radius: 10px;
+        background: #f8f6f0;
+        border: 1px solid #f1e3b8;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .correction-box {
+        margin-left: 22px;
+        border-radius: 10px;
+        background: #edf4ff;
+        border: 1px solid #cddffc;
+        position: relative;
+    }
+
+    .correction-box::before {
+        content: "";
+        position: absolute;
+        left: -14px;
+        top: 16px;
+        width: 12px;
+        border-top: 2px dashed #b7c7e6;
+    }
+
+    .correction-label {
+        color: #425b84;
+        font-weight: 700;
+        letter-spacing: .2px;
+    }
+
+    .update-correction-btn {
+        border-radius: 8px;
+    }
+</style>

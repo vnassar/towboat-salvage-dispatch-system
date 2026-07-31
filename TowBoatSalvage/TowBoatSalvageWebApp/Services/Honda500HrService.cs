@@ -60,12 +60,14 @@ namespace TowBoatSalvageWebApp.Services
         public async Task<Honda500Hr> CreateNewHonda500HrServiceAsync(
             string user,
             int engineHours1,
-            int engineHours2
+            int engineHours2,
+            string boatNumber
         )
         {
             var entry = new Honda500Hr()
             {
-                BoatNumber = user,
+                CompletedBy = user,
+                BoatNumber = boatNumber,
                 EngineHours1 = engineHours1,
                 EngineHours2 = engineHours2,
                 DateCompleted = DateTime.Now,
