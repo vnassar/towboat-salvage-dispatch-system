@@ -70,7 +70,7 @@ namespace TowBoatSalvageWebApp.Services
                                 c.Item().Text(text =>
                                 {
                                     text.Span("Inspection ID: ").SemiBold();
-                                    text.Span($"{inspection.Id:D4}");
+                                    text.Span($"{inspection.Id}");
                                 });
                             });
                         });

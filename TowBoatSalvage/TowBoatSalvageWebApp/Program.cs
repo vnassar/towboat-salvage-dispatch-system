@@ -37,6 +37,7 @@ builder.Services.AddSignalR();
 builder.Services.AddScoped<UserService>();
 
 builder.Services.AddScoped<Honda500HrService>();
+builder.Services.AddScoped<Honda500HrPdfService>();
 
 //stripe
 StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];

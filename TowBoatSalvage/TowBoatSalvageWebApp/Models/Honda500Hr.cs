@@ -12,6 +12,7 @@ namespace TowBoatSalvageWebApp.Models
         public List<ServiceDescription> ServiceDescriptions {get;set;} = new();
         public string CompletedBy {get;set;} = string.Empty;
         public bool bIsResolved {get;set;} = false;
+        public bool bHasBeenDownloaded {get;set;} = false;
     }
 
     public class ServiceDescription

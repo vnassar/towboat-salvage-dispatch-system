@@ -100,6 +100,14 @@
                         </MudStack>
                     </TabContent>
                 </MudTabPanel>
+                <MudTabPanel>
+                    <TabContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%;">
+                            <MudText>500Hr Service</MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowRight" Size="Size.Small" />
+                        </MudStack>
+                    </TabContent>
+                </MudTabPanel>
             </MudTabs>
         </MudDrawer>
 
@@ -158,6 +166,12 @@
                     </MudPaper>
                     break;
 
+                case AdminSection.HondaService:
+                    <MudPaper Elevation="0" Class="ml-n5 mr-n5">
+                        <View500HrHonda IsFromAdminDashboard="true" />
+                    </MudPaper>
+                    break; 
+
             }
         </MudMainContent>
     </MudDrawerContainer>
@@ -173,7 +187,8 @@
         SalvageBoard,
         Documents,
         WorkOrders,
-        VesselInspection
+        VesselInspection,
+        HondaService
     }
 
     private AdminSection activeSection = AdminSection.Fuel;
