@@ -59,6 +59,10 @@
                     </MudPaper>
                 </div>
 
+                @* <div class="fixed-bottom-bar">
+                            <MudProgressLinear Color="Color.Warning" Rounded="true" Size="Size.Medium" Value="50" Class="my-7" />
+                        </div> *@
+
                 <div class="questions-for-mechanic">
                     <MudPaper Elevation="2" Class="questions-card my-1 pa-4 mx-1">
                         @if (services != null)
@@ -72,71 +76,32 @@
                                 <MudDivider Class="my-3" />
                             }
                         }
+                        
                             <!-- Resolve button -->
-                        <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true"
+                        @* <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true"
                                 OnClick="@(() => CompleteHondaService(_honda))">
+                            <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Class="mr-1" />
+                            Complete Honda Service
+                        </MudButton> *@
+                    </MudPaper>
+                </div>
+
+                <!-- Fixed bottom bar with progress and complete button -->
+                <div class="fixed-bottom-bar">
+                    <MudPaper Elevation="0" Square="true" Class="pa-3">
+                        <div class="progress-bar-questions">
+                            <MudProgressLinear Color="Color.Warning" Striped="true" Size="Size.Medium" Value="@GetProgressPercentage()" Class="mb-2" />
+                        </div>
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true"
+                                    OnClick="@(() => CompleteHondaService(_honda))">
                             <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Class="mr-1" />
                             Complete Honda Service
                         </MudButton>
                     </MudPaper>
                 </div>
                 
-    </MudPaper>
-
-    
-
-            <div class="previous-logic">
-                <MudPaper Elevation="0" Square="true">
-                    <div class="header">
-                        <MudStack Row="true" Justify="Justify.Center" AlignItems="AlignItems.Center" Class="d-flex my-1">
-                            <MudIcon Icon="@Icons.Material.Filled.DirectionsBoat" Class="mx-5" />
-                            <MudText Typo="Typo.h5" Class="mx-0">Honda 500HR Service</MudText>
-                        </MudStack>
-                    </div>
-
-                    <div class="initial-inspection">
-                        <MudPaper Elevation="2" Class="my-1 pa-4 mx-1">
-                            <MudGrid Spacing="2">
-                                <MudItem xs="12" sm="6">
-                                    <MudText Typo="Typo.body1">@_honda.BoatNumber</MudText>
-                                </MudItem>
-                                <MudItem xs="12" sm="6">
-                                    <MudText Typo="Typo.body1">@_honda.CompletedBy</MudText>
-                                </MudItem>
-                                <MudItem xs="12" sm="6">
-                                    <MudText Typo="Typo.body1">@_honda.DateCompleted.ToString("d")</MudText>
-                                </MudItem>
-                            </MudGrid>
-                        </MudPaper>
-                        <MudPaper Elevation="2" Class="my-1 pa-4 mx-1">
-                            <MudGrid Spacing="2">
-                                @if (services != null)
-                                {
-                                    @foreach (var service in services)
-                                    {
-                                        <MudItem xs="12" sm="6">
-                                            <MudCheckBox Label="@service.Description" Color="Color.Primary"
-                                                         UncheckedColor="Color.Default" Value="@service.bServiceCompleted"
-                                                         ValueChanged="@((bool val) => SaveProgressAsync(service, val))" />
-                                        </MudItem>
-                                    }
-                                }
-                            </MudGrid>
-                        </MudPaper>
-                    </div>
-
-        
-                    @* <div class="submit">
-            <MudPaper Elevation="0" Class=" d-flex justify-center my-2">
-                <MudButton OnClick="StartNew500HrServiceAsync" ButtonType="ButtonType.Submit" Color="Color.Primary"
-            Variant="Variant.Filled">Start New 500Hr Service</MudButton>
-            </MudPaper>
-        </div> *@
-                </MudPaper>
-            </div>
-
-    
-        </MudContainer>
+    </MudPaper>    
+</MudContainer>
 
 
 @code {
@@ -175,11 +140,24 @@
             honda.bIsResolved = true;
             await Honda500HrService.UpdateServiceDescriptionAsync(honda);
             Snackbar.Add($"Honda service completed successfully.", Severity.Success);
+            await Task.Delay(500);
+            Nav.NavigateTo("/NewHondaHrService", false);
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error completing Honda service: {ex.Message}", Severity.Error);
         }
+    }
+
+    private int GetProgressPercentage()
+    {
+        if (services is null || services.Count == 0)
+        {
+            return 0;
+        }
+
+        var completedCount = services.Count(s => s.bServiceCompleted);
+        return (int)((double)completedCount / services.Count * 100);
     }
 }
 
@@ -190,9 +168,10 @@
     }
 
     .maintenance-shell {
-        max-width: 450px;
+        @* max-width: 450px; *@
         min-height: 100vh;
         background: #eef0f3;
+        padding-bottom: 65px;
     }
 
     .maintenance-header {
@@ -381,5 +360,16 @@
 
     .update-correction-btn {
         border-radius: 8px;
+    }
+
+    .fixed-bottom-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background: #eef0f3;
+        @* padding: 16px; *@
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
     }
 </style>

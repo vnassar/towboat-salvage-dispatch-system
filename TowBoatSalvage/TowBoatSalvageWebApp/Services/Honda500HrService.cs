@@ -92,6 +92,162 @@ namespace TowBoatSalvageWebApp.Services
                     {
                         Description = "Change Port engine fuel strainer (HP) and o-ring",
                     },
+                    new ServiceDescription
+                    {
+                        Description = "Change Port engine thermostats and check o-rings (flush before changing)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Port engine exhaust manifold zincs",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Port engine exhaust manifold gaskets",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Port engine exhaust manifold o-ring",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Clean Port engine block zinc holes (with hand pick and wire brush on drill and then flush)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Flush Port engine VST cooling system",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Port engine block zinks",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Port engine spark plugs (check seals, replace as needed and document)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Adjust Port engine valves (have the Chief Mechanic check valve adjustments if available)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Clean Port engine IAC valve (check gasket, replace if needed)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Port Gear Case Lube and o-rings",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Port gear case water pump impeller (check water pump housing plate for corrosion)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Inspect Port Timing Belt",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Starboard engine oil and filter",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Starboard engine water separator fuel strainer (LP) - (if equiped)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Starboard engine fuel strainer (HP) and o-ring",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Starboard engine thermostats and check o-rings (flush before changing)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Starboard engine exhaust manifold zincs",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Starboard engine exhaust manifold gaskets",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Starboard engine exhaust manifold o-ring",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Clean Starboard engine block zinc holes (with hand pick and wire brush on drill and then flush)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Flush Starboard engine VST cooling system",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Starboard engine block zinks",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Starboard engine spark plugs (check seals, replace as needed and document)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Adjust Starboard engine valves (have Chief Mechanic check valve adjustments if available)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Clean Starboard engine IAC Valve (check gasket, replace if needed)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Starboard Gear Case Lube and o-rings",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Starboard gear case water pump impellar",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Inspect Starboard Timing Belt",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Grease engine and apply corrosion block (with paint brush)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Change Port and Starboard vessel fuel filter",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Check steering operation and fluid level",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Paint Port and Starboard trim motors - (2 coats)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Clean and check bottom paint - (make needed repairs and document)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Complete equipment checklist (document on topside checksheet)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Fuel Vessel (document on vessel and truck fuel log, reset computer on boat)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Clean vessel after a maintenance",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Quality check, run both engines check for leaks and any issues (run saltaway through engines)",
+                    },
+                    new ServiceDescription
+                    {
+                        Description = "Hook up laptop and run Dr. Honda, full check of system and ECU code clear",
+                    },
                 },
             };
 
