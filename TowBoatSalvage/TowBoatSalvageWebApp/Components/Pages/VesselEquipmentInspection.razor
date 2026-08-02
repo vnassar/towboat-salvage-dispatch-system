@@ -17,6 +17,98 @@
 
     <TowBoatSalvageWebApp.Components.Pages.NavBar.NavigationBar />
 
+    <MudPaper Elevation="0" Square="true" Class="maintenance-shell mx-auto">
+        <!-- Header -->
+        <MudPaper Elevation="0" Square="true" Class="maintenance-header px-4 pt-6 pb-2">
+            <div class="header-title">
+                <MudIcon Icon="@Icons.Material.Filled.DirectionsBoat" Class="mr-2" />
+                <MudText Typo="Typo.h5" Class="header-title-text">Fleet Maintenance</MudText>
+            </div>
+        </MudPaper>
+
+        <div class="boat-info">
+            <MudPaper Elevation="2" Class="open-order-card pa-3 mb-0">
+                <div class="d-flex justify-space-between">
+                    <div class="d-flex align-start mb-2">
+                        <div class="order-boat-icon mr-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.DirectionsBoat" />
+                        </div>
+                        <div>
+                            <MudText Typo="Typo.h5" Class="font-weight-bold">@_honda.BoatNumber</MudText>
+                            <MudText Typo="Typo.body2" Class="order-date">
+                                <MudIcon Icon="@Icons.Material.Outlined.Schedule" Size="Size.Small" Class="mr-1" />
+                                @_honda.DateCompleted
+                            </MudText>
+                        </div>
+                    </div>
+                </div>
+
+                <MudPaper Elevation="0" Class="engines-box pa-3 mb-3">
+                    <MudGrid>
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.caption" Class="engine-label">ENGINE 1</MudText>
+                            <MudText Typo="Typo.h6"><strong>@_honda.EngineHours1</strong> <span
+                                class="engine-hrs">hrs</span></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption" Class="engine-label">ENGINE 2</MudText>
+                                <MudText Typo="Typo.h6"><strong>@_honda.EngineHours2</strong> <span
+                                    class="engine-hrs">hrs</span></MudText>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    </MudPaper>
+                </div>
+
+                @* <div class="fixed-bottom-bar">
+                            <MudProgressLinear Color="Color.Warning" Rounded="true" Size="Size.Medium" Value="50" Class="my-7" />
+                        </div> *@
+
+                <div class="questions-for-mechanic">
+                    <MudPaper Elevation="2" Class="questions-card my-1 pa-4 mx-1">
+                        @if (services != null)
+                        {
+                            @foreach (var service in services)
+                            {
+                                <MudCheckBox Label="@service.Description" Color="Color.Primary"
+                                            UncheckedColor="Color.Default" Value="@service.bServiceCompleted"
+                                            ValueChanged="@((bool val) => SaveProgressAsync(service, val))" 
+                                            Class=""/>
+                                <MudDivider Class="my-3" />
+                            }
+                        }
+                        
+                            <!-- Resolve button -->
+                        @* <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true"
+                                OnClick="@(() => CompleteHondaService(_honda))">
+                            <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Class="mr-1" />
+                            Complete Honda Service
+                        </MudButton> *@
+                    </MudPaper>
+                </div>
+
+                <!-- Fixed bottom bar with progress and complete button -->
+                <div class="fixed-bottom-bar">
+                    <MudPaper Elevation="0" Square="true" Class="pa-3">
+                        <div class="progress-bar-questions">
+                            <MudProgressLinear Color="Color.Warning" Striped="true" Size="Size.Medium" Value="@GetProgressPercentage()" Class="mb-2" />
+                        </div>
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true"
+                                    OnClick="@(() => CompleteHondaService(_honda))">
+                            <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Class="mr-1" />
+                            Complete Honda Service
+                        </MudButton>
+                    </MudPaper>
+                </div>
+                
+    </MudPaper>    
+</MudContainer>
+
+<div class="previous-logic">
+    <MudContainer MaxWidth="MaxWidth.False" Class="pa-0">
+
+    <TowBoatSalvageWebApp.Components.Pages.NavBar.NavigationBar />
+
     <MudPaper Elevation="0" Square="true">
         <div class="header">
             <MudStack Row="true" Justify="Justify.Center" AlignItems="AlignItems.Center" Class="d-flex my-1">
@@ -288,6 +380,8 @@
         </div>
     </MudPaper>
 </MudContainer>
+</div>
+
 
 @code {
     private string? selectedBoat;

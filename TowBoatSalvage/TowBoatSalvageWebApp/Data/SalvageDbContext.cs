@@ -23,6 +23,7 @@ namespace TowBoatSalvageWebApp.Data
 
         public DbSet<PaymentRequest> PaymentRequests { get; set; }
         public DbSet<VehicleInspection> VehicleInspection { get; set; }
+        public DbSet<VesselInspection> VesselInspection { get; set; }
 
         public SalvageDbContext(DbContextOptions<SalvageDbContext> options) : base(options) { }
 
@@ -110,6 +111,11 @@ namespace TowBoatSalvageWebApp.Data
                 .HasMany(h => h.ServiceDescriptions)
                 .WithOne()  // ServiceDescription doesn't need to reference back to Honda500Hr
                 .HasForeignKey("Honda500HrId")  // Foreign key in ServiceDescription table
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<VesselInspection>()
+                .HasMany(h => h.ServiceDescriptions)
+                .WithOne()  
+                .HasForeignKey("VesselInspectionId") 
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }
