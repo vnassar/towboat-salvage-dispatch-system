@@ -1,16 +1,16 @@
-@page "/NewHondaHrService"
+@page "/New&ExistingVesselInspection"
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using TowBoatSalvageWebApp.Data
 @using TowBoatSalvageWebApp.Services
 @using TowBoatSalvageWebApp.Models
-@inject Honda500HrService Honda500HrService
+@inject VehicleInspectionService VehicleInspectionService
 @inject UserManager<ApplicationUser> UserManager
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 @inject IDialogService DialogService
 
-<PageTitle>AMS Honda 500Hr Service</PageTitle>
+<PageTitle>AMS Vessel Inspection</PageTitle>
 
 
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-0 maintenance-page">
@@ -26,26 +26,26 @@
             </div>
 
             <div class="header-tabs mt-4">
-                <div class="@GetTabClass(HondaServiceTab.NewRequest)"
-                     @onclick="() => SetTab(HondaServiceTab.NewRequest)">
+                <div class="@GetTabClass(VesselInspectionTab.NewRequest)"
+                     @onclick="() => SetTab(VesselInspectionTab.NewRequest)">
                     <MudIcon Icon="@Icons.Material.Filled.Anchor" Size="Size.Small" Class="mr-1" />
                     <span>New</span>
                 </div>
 
-                <div class="@GetTabClass(HondaServiceTab.OpenHondaServices)"
-                     @onclick="() => SetTab(HondaServiceTab.OpenHondaServices)">
+                <div class="@GetTabClass(VesselInspectionTab.OpenVesselInspection)"
+                     @onclick="() => SetTab(VesselInspectionTab.OpenVesselInspection)">
                     <MudIcon Icon="@Icons.Material.Filled.Build" Size="Size.Small" Class="mr-1" />
-                    <span>Open Services</span>
-                    <MudBadge Content="@OpenServicesCount" Color="Color.Warning" Class="ml-2" />
+                    <span>Open Inspections</span>
+                    <MudBadge Content="@OpenVesselInspectionCount" Color="Color.Warning" Class="ml-2" />
                 </div>
             </div>
         </MudPaper>
 
-            @if (ActiveTab == HondaServiceTab.NewRequest)
+            @if (ActiveTab == VesselInspectionTab.NewRequest)
             {
                 <!-- New Request -->
                 <MudPaper Elevation="2" Class="request-card pa-4 ma-4">
-                    <MudText Typo="Typo.h4" Class="mb-4">New Service</MudText>
+                    <MudText Typo="Typo.h4" Class="mb-4">New Vessel Inspection</MudText>
 
                     <MudSelect T="string" Label="Select Boat" Variant="Variant.Filled" Margin="Margin.Dense" Class="mb-3"
                                @bind-Value="selectedBoat">
@@ -82,8 +82,8 @@
                     <MudDivider Class="my-3" />
 
                     <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" Class="submit-btn"
-                               OnClick="StartNew500HrServiceAsync">
-                        Start Honda Service
+                               OnClick="StartNewVesselInspectionAsync">
+                        Start Vessel Inspection
                     </MudButton>
                 </MudPaper>
             }
@@ -93,20 +93,20 @@
                 <div class="open-orders-wrap pa-4">
                     <div class="d-flex align-center justify-space-between mb-3">
                         <MudText Typo="Typo.h5" Class="font-weight-bold">Needs Attention</MudText>
-                        <MudChip T="int" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">@OpenServicesCount
+                        <MudChip T="int" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">@OpenVesselInspectionCount
                             Orders
                         </MudChip>
                     </div>
 
-                    @if (OpenServicesCount == 0)
+                    @if (OpenVesselInspectionCount == 0)
                     {
                         <MudPaper Elevation="1" Class="request-card pa-4">
-                            <MudText Typo="Typo.body1" Align="Align.Center">No open services right now.</MudText>
+                            <MudText Typo="Typo.body1" Align="Align.Center">No open vessel inspections right now.</MudText>
                         </MudPaper>
                     }
                     else
                     {
-                        @foreach (var order in _allServices.Where(x => !x.bIsResolved))
+                        @foreach (var order in _allVesselInspection.Where(x => !x.bIsResolved))
                         {
                             <MudPaper Elevation="2" Class="open-order-card pa-3 mb-4">
                                 <div class="d-flex justify-space-between"> 
@@ -118,7 +118,7 @@
                                             <MudText Typo="Typo.h5" Class="font-weight-bold">@order.BoatNumber</MudText>
                                             <MudText Typo="Typo.body2" Class="order-date">
                                                 <MudIcon Icon="@Icons.Material.Outlined.Schedule" Size="Size.Small" Class="mr-1" />
-                                                @order.DateCompleted
+                                                @order.DateOfInspection
                                             </MudText>
                                         </div>
                                     </div>
@@ -134,12 +134,12 @@
                                     <MudGrid>
                                         <MudItem xs="6">
                                             <MudText Typo="Typo.caption" Class="engine-label">ENGINE 1</MudText>
-                                            <MudText Typo="Typo.h6"><strong>@order.EngineHours1</strong> <span
+                                            <MudText Typo="Typo.h6"><strong>123 test</strong> <span
                                                 class="engine-hrs">hrs</span></MudText>
                                             </MudItem>
                                             <MudItem xs="6">
                                                 <MudText Typo="Typo.caption" Class="engine-label">ENGINE 2</MudText>
-                                                <MudText Typo="Typo.h6"><strong>@order.EngineHours2</strong> <span
+                                                <MudText Typo="Typo.h6"><strong>123 test</strong> <span
                                                     class="engine-hrs">hrs</span></MudText>
                                                 </MudItem>
                                             </MudGrid>
@@ -149,9 +149,9 @@
 
                                         <!-- Resolve button -->
                                         <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true"
-                                                   OnClick="@(() => ResumeHondaServiceAsync(order))">
+                                                   OnClick="@(() => ResumeVesselInspectionAsync(order))">
                                             <MudIcon Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" Class="mr-1" />
-                                            Resume Honda Service
+                                            Resume Vessel Inspection
                                         </MudButton>
                                     </MudPaper>
                                 }
@@ -197,26 +197,26 @@
     private int _engineHours1;
     private int _engineHours2;
 
-    private int OpenServicesCount;
-    private List<Honda500Hr> _allServices = new();
+    private int OpenVesselInspectionCount;
+    private List<VesselInspection> _allVesselInspection = new();
 
-    private void SetTab(HondaServiceTab tab) => ActiveTab = tab;
-    private HondaServiceTab ActiveTab { get; set; } = HondaServiceTab.NewRequest;
+    private void SetTab(VesselInspectionTab tab) => ActiveTab = tab;
+    private VesselInspectionTab ActiveTab { get; set; } = VesselInspectionTab.NewRequest;
 
-    private string GetTabClass(HondaServiceTab tab) => ActiveTab == tab ? "header-tab active" : "header-tab";
+    private string GetTabClass(VesselInspectionTab tab) => ActiveTab == tab ? "header-tab active" : "header-tab";
 
-    private enum HondaServiceTab
+    private enum VesselInspectionTab
     {
         NewRequest,
-        OpenHondaServices
+        OpenVesselInspection
     }
 
     protected override async Task OnInitializedAsync()
     {
         await CreateCrewList();
 
-        _allServices = await Honda500HrService.GetHonda500HrServiceFromSelectedYear(DateTime.Now.Year);
-        OpenServicesCount = _allServices.Count(s => !s.bIsResolved);
+        _allVesselInspection = await VehicleInspectionService.GetVehicleInspectionsFromSelectedYearAsync(DateTime.Now.Year);
+        OpenVesselInspectionCount = _allVesselInspection.Count(s => !s.bIsResolved);
     }
 
     private async Task CreateCrewList()
@@ -229,36 +229,36 @@
         }
     }
 
-    private async Task StartNew500HrServiceAsync()
+    private async Task StartNewVesselInspectionAsync()
     {
         if (selectedCrew is null) return;
         if (selectedBoat is null) return;
 
         try
         {
-            var hondaService = await Honda500HrService.CreateNewHonda500HrServiceAsync(selectedCrew, _engineHours1, _engineHours2, selectedBoat);
+            var vesselInspection = await VehicleInspectionService.CreateNewVesselInspectionAsync(selectedCrew, selectedBoat, _dateOfInspection);
 
-            var url = $"{Nav.BaseUri}Honda500HrService/{hondaService.Id}";
+            var url = $"{Nav.BaseUri}vessel-inspection/{vesselInspection.Id}";
 
             Nav.NavigateTo($"{url}", true);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error starting new 500Hr service: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Error starting new vessel inspection: {ex.Message}", Severity.Error);
             return;
         }
     }
 
-    private async Task ResumeHondaServiceAsync(Honda500Hr order)
+    private async Task ResumeVesselInspectionAsync(VesselInspection inspection)
     {
-        var url = $"{Nav.BaseUri}Honda500HrService/{order.Id}";
+        var url = $"{Nav.BaseUri}vessel-inspection/{inspection.Id}";
         Nav.NavigateTo($"{url}", true);
     }
 
-    private async Task ConfirmDeleteOrderAsync(Honda500Hr order)
+    private async Task ConfirmDeleteOrderAsync(VesselInspection inspection)
     {
         var confirm = await DialogService.ShowMessageBoxAsync(
-            title: "Delete Honda 500Hr Service",
+            title: "Delete Vessel Inspection",
             markupMessage: (MarkupString)"Are you sure you want to delete this?",
             yesText: "Delete",
             cancelText: "Cancel"
@@ -266,24 +266,24 @@
 
         if (confirm == true)
         {
-            await DeleteOrderAsync(order);
+            await DeleteOrderAsync(inspection);
         }
     }
 
-    private async Task DeleteOrderAsync(Honda500Hr order)
+    private async Task DeleteOrderAsync(VesselInspection inspection)
     {
         try
         {
-            await Honda500HrService.DeleteAsync(order.Id);
-            Snackbar.Add($"Successfully deleted Honda 500Hr service.", Severity.Success);
+            await VehicleInspectionService.DeleteAsync(inspection.Id);
+            Snackbar.Add($"Successfully deleted vessel inspection.", Severity.Success);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Unable to delete Honda 500Hr service: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Unable to delete vessel inspection: {ex.Message}", Severity.Error);
         }
 
-        _allServices = await Honda500HrService.GetHonda500HrServiceFromSelectedYear(DateTime.Now.Year);
-        OpenServicesCount = _allServices.Count(s => !s.bIsResolved);
+        _allVesselInspection = await VehicleInspectionService.GetVehicleInspectionsFromSelectedYearAsync(DateTime.Now.Year);
+        OpenVesselInspectionCount = _allVesselInspection.Count(s => !s.bIsResolved);
     }
 }
 

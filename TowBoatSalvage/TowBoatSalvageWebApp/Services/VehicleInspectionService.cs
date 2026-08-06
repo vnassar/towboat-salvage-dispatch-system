@@ -19,57 +19,54 @@ namespace TowBoatSalvageWebApp.Services
             _logger = logger;
         }
 
-        public async Task AddAsync(VehicleInspection inspection)
+        public async Task AddAsync(VesselInspection inspection)
         {
-            _db.VehicleInspection.Add(inspection);
+            _db.VesselInspection.Add(inspection);
             await _db.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(int id)
         {
-            var entry = await _db.VehicleInspection.FindAsync(id);
+            var entry = await _db.VesselInspection.FindAsync(id);
             if (entry is null)
                 return;
 
-            _db.VehicleInspection.Remove(entry);
+            _db.VesselInspection.Remove(entry);
             await _db.SaveChangesAsync();
         }
 
-        public async Task<List<VehicleInspection>> GetVehicleInspectionsFromSelectedYearAsync(
+        public async Task<List<VesselInspection>> GetVehicleInspectionsFromSelectedYearAsync(
             int year
         )
         {
-            var query = _db.VehicleInspection.AsNoTracking();
+            var query = _db.VesselInspection.AsNoTracking();
 
             query = query.Where(v => v.DateOfInspection!.Value.Year == year);
 
             return await query.OrderByDescending(v => v.DateOfInspection).ToListAsync();
         }
 
-        public async Task<VehicleInspection?> GetInspectionForPdfByIdAsync(int id)
+        public async Task<VesselInspection?> GetInspectionForPdfByIdAsync(int id)
         {
-            return await _db.VehicleInspection
+            return await _db.VesselInspection
                 .AsNoTracking()
-                .Include(v => v.InitialInspection)
-                .Include(v => v.CaptainsPersonalItems)
-                .Include(v => v.SafetyDevices)
-                .Include(v => v.MountedLights)
-                .Include(v => v.Placards)
-                .Include(v => v.Navigation)
-                .Include(v => v.VesselEquipment)
-                .Include(v => v.Salvage)
-                .Include(v => v.Oil)
-                .Include(v => v.OperationalCheck)
+                .Include(v => v.ServiceDescriptions)
                 .FirstOrDefaultAsync(v => v.Id == id);
         }
 
-        public async Task<VesselInspection> CreateNewVesselInspectionAsync(string user, string boatNumber)
+        public async Task UpdateAsync(VesselInspection inspection)
+        {
+            _db.VesselInspection.Update(inspection); 
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task<VesselInspection> CreateNewVesselInspectionAsync(string user, string boatNumber, DateTime? date)
         {
             var inspection = new VesselInspection()
             {
                 CompletedBy = user,
                 BoatNumber = boatNumber,
-                DateOfInspection = DateTime.Now,
+                DateOfInspection = date,
                 Notes = string.Empty,
                 ServiceDescriptions = new List<ServiceDescriptionVesselInspection>
                 {

@@ -1,15 +1,12 @@
-@page "/Honda500HrService/{Id}"
-@using Microsoft.AspNetCore.Identity
-@using Microsoft.EntityFrameworkCore
-@using TowBoatSalvageWebApp.Data
+@page "/vessel-inspection/{vesselId}"
 @using TowBoatSalvageWebApp.Models
 @using TowBoatSalvageWebApp.Services
-@inject Honda500HrService Honda500HrService
-@inject UserManager<ApplicationUser> UserManager
+@inject VehicleInspectionService VehicleInspectionService
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 
-<PageTitle>AMS Honda 500 Hr Service</PageTitle>
+
+<PageTitle>AMS Vessel Inspection</PageTitle>
 
 
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-0">
@@ -33,10 +30,10 @@
                             <MudIcon Icon="@Icons.Material.Outlined.DirectionsBoat" />
                         </div>
                         <div>
-                            <MudText Typo="Typo.h5" Class="font-weight-bold">@_honda.BoatNumber</MudText>
+                            <MudText Typo="Typo.h5" Class="font-weight-bold">@_vessel.BoatNumber</MudText>
                             <MudText Typo="Typo.body2" Class="order-date">
                                 <MudIcon Icon="@Icons.Material.Outlined.Schedule" Size="Size.Small" Class="mr-1" />
-                                @_honda.DateCompleted
+                                @_vessel.DateOfInspection
                             </MudText>
                         </div>
                     </div>
@@ -46,12 +43,12 @@
                     <MudGrid>
                         <MudItem xs="6">
                             <MudText Typo="Typo.caption" Class="engine-label">ENGINE 1</MudText>
-                            <MudText Typo="Typo.h6"><strong>@_honda.EngineHours1</strong> <span
+                            <MudText Typo="Typo.h6"><strong>123 test</strong> <span
                                 class="engine-hrs">hrs</span></MudText>
                             </MudItem>
                             <MudItem xs="6">
                                 <MudText Typo="Typo.caption" Class="engine-label">ENGINE 2</MudText>
-                                <MudText Typo="Typo.h6"><strong>@_honda.EngineHours2</strong> <span
+                                <MudText Typo="Typo.h6"><strong>123 test</strong> <span
                                     class="engine-hrs">hrs</span></MudText>
                                 </MudItem>
                             </MudGrid>
@@ -73,6 +70,15 @@
                                             UncheckedColor="Color.Default" Value="@service.bServiceCompleted"
                                             ValueChanged="@((bool val) => SaveProgressAsync(service, val))" 
                                             Class=""/>
+                                @if (service.bThisItemRequiresDate && service.bServiceCompleted && !service.Description.StartsWith("Check DVR Card"))
+                                {
+                                    <MudDatePicker Variant="Variant.Filled" Label="Select Date" Date="service.DateForThisItem" DateChanged="@((DateTime? val) => SaveProgressAsync(service, val, DateField.Default))" />
+                                }
+                                @if (service.bThisItemRequiresDate && service.bServiceCompleted && service.Description.StartsWith("Check DVR Card"))
+                                {
+                                    <MudDatePicker Variant="Variant.Filled" Label="First Recording" Date="service.FirstRecording" DateChanged="@((DateTime? val) => SaveProgressAsync(service, val, DateField.FirstRecording))" />
+                                    <MudDatePicker Variant="Variant.Filled" Label="Second Recording" Date="service.SecondRecording" DateChanged="@((DateTime? val) => SaveProgressAsync(service, val, DateField.SecondRecording))"/>
+                                }
                                 <MudDivider Class="my-3" />
                             }
                         }
@@ -93,9 +99,9 @@
                             <MudProgressLinear Color="Color.Warning" Striped="true" Size="Size.Medium" Value="@GetProgressPercentage()" Class="mb-2" />
                         </div>
                         <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true"
-                                    OnClick="@(() => CompleteHondaService(_honda))">
+                                    OnClick="@(() => CompleteVesselInspection(_vessel))">
                             <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Class="mr-1" />
-                            Complete Honda Service
+                            Complete Vessel Inspection
                         </MudButton>
                     </MudPaper>
                 </div>
@@ -104,28 +110,32 @@
 </MudContainer>
 
 
-@code {
-    [Parameter] public string? Id { get; set; }
 
-    private Honda500Hr _honda = new();
 
-    private List<ServiceDescription>? services;
+
+
+
+@code
+{
+    [Parameter]
+    public string? vesselId { get; set; }
+
+    private VesselInspection _vessel = new();
+    private List<ServiceDescriptionVesselInspection>? services;
+
     protected override async Task OnParametersSetAsync()
     {
-        _honda = await Honda500HrService.GetServiceForPdfByIdAsync(int.Parse(Id ?? "0")) ?? new();
-
-        services = _honda.ServiceDescriptions;
-
+        _vessel = await VehicleInspectionService.GetInspectionForPdfByIdAsync(int.Parse(vesselId ?? "0")) ?? new(); 
+        services = _vessel.ServiceDescriptions;
     }
 
-    private async Task SaveProgressAsync(ServiceDescription service, bool val)
+    private async Task SaveProgressAsync(ServiceDescriptionVesselInspection service, bool val)
     {
         service.bServiceCompleted = val;
 
         try
         {
-            await Honda500HrService.UpdateServiceDescriptionAsync(_honda);
-
+            await VehicleInspectionService.UpdateAsync(_vessel);
         }
         catch (Exception ex)
         {
@@ -133,19 +143,57 @@
         }
     }
 
-    private async Task CompleteHondaService(Honda500Hr honda)
+    private enum DateField
     {
+        Default,
+        FirstRecording,
+        SecondRecording
+    }
+    //overloading with date
+    private async Task SaveProgressAsync(ServiceDescriptionVesselInspection service, DateTime? date, DateField field)
+    {
+
+        
+
         try
         {
-            honda.bIsResolved = true;
-            await Honda500HrService.UpdateServiceDescriptionAsync(honda);
-            Snackbar.Add($"Honda service completed successfully.", Severity.Success);
-            await Task.Delay(500);
-            Nav.NavigateTo("/NewHondaHrService", false);
+            switch (field)
+            {
+                case DateField.FirstRecording:
+                    service.FirstRecording = date;
+                    Snackbar.Add("First recording fired", Severity.Info);
+                    break;
+                case DateField.SecondRecording:
+                    service.SecondRecording = date;
+                    Snackbar.Add("Second recording fired", Severity.Info);
+                    break;
+                default:
+                    service.DateForThisItem = date;
+                    Snackbar.Add("Default fired", Severity.Info);
+                    break;
+            }
+
+            await VehicleInspectionService.UpdateAsync(_vessel);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error completing Honda service: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Error saving progress: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task CompleteVesselInspection(VesselInspection vessel)
+    {
+        try
+        {
+            vessel.bIsResolved = true;
+            await VehicleInspectionService.UpdateAsync(vessel);
+            Snackbar.Add($"Vessel inspection completed successfully.", Severity.Success);
+            await Task.Delay(500);
+            Nav.NavigateTo("/New&ExistingVesselInspection", false);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error completing vessel inspection: {ex.Message}", Severity.Error);
         }
     }
 
