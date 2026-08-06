@@ -71,7 +71,8 @@
                         Page @_currentPage of @TotalPages
                     </MudText>
 
-                    <MudPagination Count="@TotalPages" @bind-Selected="_currentPage" ShowFirstButton="true" ShowLastButton="true" BoundaryCount="1" Size="Size.Small" />         
+                    <MudPagination Count="@TotalPages" @bind-Selected="_currentPage" ShowFirstButton="true"
+                                   ShowLastButton="true" BoundaryCount="1" Size="Size.Small" />
                 </div>
             }
         }
@@ -187,8 +188,6 @@
         catch (Exception ex)
         {
             Snackbar.Add($"Failed to generate PDF: {ex.Message}", Severity.Error);
-        }
-    }
         }
     }
 }
