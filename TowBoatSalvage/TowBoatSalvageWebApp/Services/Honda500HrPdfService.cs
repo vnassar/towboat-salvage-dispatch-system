@@ -23,7 +23,9 @@ namespace TowBoatSalvageWebApp.Services
                 {
                     page.Size(PageSizes.Letter);
                     page.Margin(30);
-                    page.DefaultTextStyle(x => x.FontSize(11));
+                    page.DefaultTextStyle(x => 
+                        x.FontFamily("Noto Sans")
+                        .FontSize(11));
 
                     // ── Header ──
                     page.Header().Column(col =>

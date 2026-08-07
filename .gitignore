@@ -56,3 +56,6 @@ Thumbs.db
 # Ignore uploaded salvage files, but keep the folder
 **/wwwroot/salvage_uploads/*
 !**/wwwroot/salvage_uploads/.gitkeep
+
+#ignore publish folder
+**/publish/
