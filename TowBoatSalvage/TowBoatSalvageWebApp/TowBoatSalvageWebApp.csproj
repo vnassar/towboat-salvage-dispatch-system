@@ -31,4 +31,10 @@
     <Folder Include="wwwroot\salvage_uploads\" />
   </ItemGroup>
 
+  <ItemGroup>
+  <Content Include="Fonts\NotoSansSymbols2-Regular.ttf">
+    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+  </Content>
+</ItemGroup>
+
 </Project>

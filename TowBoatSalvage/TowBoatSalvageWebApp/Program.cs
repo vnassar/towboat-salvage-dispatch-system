@@ -11,6 +11,7 @@ using System.Text;
 using System.Text.Json;
 using Stripe;
 using Microsoft.AspNetCore.DataProtection;
+using QuestPDF.Drawing;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +24,8 @@ builder.Services.AddRazorComponents()
 //Adding Service 
 builder.Services.AddScoped<SalvageTableService>();
 builder.Services.AddSingleton<ToastService>();
+
+FontManager.RegisterFont(System.IO.File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Fonts", "NotoSansSymbols2-Regular.ttf")));
 
 //mudblazor
 builder.Services.AddMudServices();

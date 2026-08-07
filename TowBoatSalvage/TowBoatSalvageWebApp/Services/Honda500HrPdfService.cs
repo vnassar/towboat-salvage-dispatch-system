@@ -110,7 +110,8 @@ namespace TowBoatSalvageWebApp.Services
                                 {
                                     inner.Item().Row(r =>
                                     {
-                                        r.AutoItem().Text(service.bServiceCompleted ? "✓" : "✗")
+                                        r.AutoItem().Text(service.bServiceCompleted ? "✔" : "✘")
+                                            .FontFamily("Noto Sans Symbols 2")
                                             .FontSize(12)
                                             .FontColor(service.bServiceCompleted ? Colors.Green.Medium : Colors.Red.Medium)
                                             .AlignCenter();

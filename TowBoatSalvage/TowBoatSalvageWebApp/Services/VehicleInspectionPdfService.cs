@@ -24,7 +24,7 @@ namespace TowBoatSalvageWebApp.Services
                 {
                     page.Size(PageSizes.Letter);
                     page.Margin(30);
-                    page.DefaultTextStyle(x => x.FontSize(11));
+                    page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Noto Sans"));
 
                     // ── Header ──
                     page.Header().Column(col =>
@@ -90,7 +90,8 @@ namespace TowBoatSalvageWebApp.Services
                                 {
                                     inner.Item().Row(r =>
                                     {
-                                        r.AutoItem().Text(service.bServiceCompleted ? "✓" : "✗")
+                                        r.AutoItem().Text(service.bServiceCompleted ? "✔" : "✘")
+                                            .FontFamily("Noto Sans Symbols 2")
                                             .FontSize(12)
                                             .FontColor(service.bServiceCompleted ? Colors.Green.Medium : Colors.Red.Medium)
                                             .AlignCenter();
@@ -180,8 +181,9 @@ namespace TowBoatSalvageWebApp.Services
                     inner.Item().Row(r =>
                     {
                         r.RelativeItem().Text(label).FontSize(10);
-                        r.AutoItem().Text(value is bool isChecked ? (isChecked ? "✓" : "✗") : (value?.ToString() ?? "—"))
+                        r.AutoItem().Text(value is bool isChecked ? (isChecked ? "✔" : "✘") : (value?.ToString() ?? "—"))
                             .FontSize(10)
+                            .FontFamily("Noto Sans Symbols 2")
                             .FontColor(value is bool isTrue && !isTrue ? Colors.Red.Medium : Colors.Grey.Darken2);
                     });
                 }
