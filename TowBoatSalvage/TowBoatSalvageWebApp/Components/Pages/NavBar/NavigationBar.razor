@@ -7,6 +7,7 @@
 @inject ApplicationDbContext UserDb
 @inject UserManager<ApplicationUser> UserManager
 @inject RoleManager<IdentityRole> RoleManager
+@inject UserService UserService
 @inject ISnackbar Snackbar
 @inject UserState UserState
 @inject NavigationManager Navigation
@@ -43,9 +44,13 @@
         <li>
             <a href="/fuel-log" @onclick="CloseMenu">New Fuel Log</a>
         </li>
-        <li>
-            <a href="/work-order" @onclick="CloseMenu">New Work Order</a>
-        </li>
+        @*Per James, Only Show for Non-Captains*@
+        @if (!UserService.roles.Contains("Captain", StringComparer.OrdinalIgnoreCase))
+        {
+            <li>
+                <a href="/work-order" @onclick="CloseMenu">New Work Order</a>
+            </li>
+        }
         <li>
             <a href="/New&ExistingVesselInspection" @onclick="CloseMenu"> New Vessel inspection</a>
         </li>
