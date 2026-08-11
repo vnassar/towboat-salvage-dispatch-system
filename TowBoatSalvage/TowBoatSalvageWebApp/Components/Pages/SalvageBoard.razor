@@ -419,7 +419,7 @@
                             </div>
                         }
                     </div>
-                    <button class="close-btn" @onclick="() => isGalleryOpen = false">×</button>
+                    <button class="close-btn" @onclick="() => isGalleryOpen = false">ï¿½</button>
                 </div>
             }
 
@@ -816,7 +816,7 @@
                 </div>
             }
         </div>
-        <button class="close-btn" @onclick="() => isGalleryOpen = false">×</button>
+        <button class="close-btn" @onclick="() => isGalleryOpen = false">ï¿½</button>
     </div>
 }
 *@
@@ -1604,6 +1604,7 @@
         Ports = await TableService.GetPortsAsync();
         Captains = await TableService.GetCaptainsAsync();
 
+        //only displayed for admins/managers and not visible in mobile view
         FilteredCompletedRows = (await GetFilteredCompletedRowsAsync()).ToList();
     }
 

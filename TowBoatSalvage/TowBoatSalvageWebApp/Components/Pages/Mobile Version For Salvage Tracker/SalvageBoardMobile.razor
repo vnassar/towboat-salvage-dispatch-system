@@ -7,6 +7,7 @@
 @using TowBoatSalvageWebApp.Models
 @using TowBoatSalvageWebApp.Services
 @inject SalvageTableService TableService
+@inject UserService UserService
 @inject IJSRuntime JS
 @inject IWebHostEnvironment Env
 @inject ToastService ToastService
@@ -416,7 +417,16 @@
         isLoading = true;
 
         Columns = await TableService.GetColumnAsync();
-        Rows = await TableService.GetRowsWithCellAsync();
+        //filtering based on whose logged in
+        if (UserService.roles.Contains("Admin") || UserService.roles.Contains("Manager"))
+        {
+            Rows = await TableService.GetRowsWithCellAsync();
+        }
+        else
+        {
+            var assignedCaptainName = UserService.Name;
+            Rows = await TableService.GetFilteredRowsByAssignedCaptain(assignedCaptainName);
+        }
 
         RefreshCachedLists();
 
