@@ -1,6 +1,7 @@
 ﻿@inject ISnackbar Snackbar
 @inject FuelLogService FuelLogService
 @inject UserManager<ApplicationUser> UserManager
+@inject UserService UserService
 @using Microsoft.EntityFrameworkCore
 @page "/fuel-log"
 @using Microsoft.AspNetCore.Authorization
@@ -67,7 +68,7 @@
 
             <MudText Typo="Typo.overline" Class="fuel-log-section">Fuel Added- Gas Cans (Gallons)</MudText>
 
-            <MudNumericField T="decimal?" Variant="Variant.Filled" Label="Fuel - Gans Cans (Optional)" @bind-Value="GasCans" Adornment="Adornment.End" />
+            <MudNumericField T="decimal?" Variant="Variant.Filled" Label="Fuel - Gas Cans (Optional)" @bind-Value="GasCans" Adornment="Adornment.End" />
 
             <MudDivider DividerType="DividerType.Middle" />
 
@@ -136,7 +137,7 @@
 
     private async Task CreateFuelList()
     {
-        var users = await UserManager.Users.OrderBy(u => u.Email).ToListAsync();
+        var users = await UserManager.Users.OrderBy(u => u.Name).ToListAsync();
 
         foreach (var user in users)
         {
@@ -144,6 +145,16 @@
             {
                 crewMembers.Add(user.Name);
             }
+        }
+
+        //auto-select the current user if they are on the fuel list
+        if (crewMembers.Contains(UserService.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            selectedCrew = UserService.Name;
+        }
+        else
+        {
+           //do nothing, leave empty for user to select from list
         }
     }
     private async Task SaveButton()
