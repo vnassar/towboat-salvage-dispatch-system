@@ -27,35 +27,53 @@
             </div>
         </MudPaper>
 
-        <MudPaper Elevation="2" Class="request-card pa-4 ma-4">
+        @*On fuel log submited*@
+        @if (fuelLogSubmitted)
+        {
+            <div class="on-fuel-log-submitted">
+                <MudPaper Elevation="2" Class="request-card pa-4 mt-20">
+                    <div class="success-animation">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Class="success-icon" />
+                        <MudText Typo="Typo.h6">Fuel log saved successfully!</MudText>
+                    </div>
+                </MudPaper>
+            </div>
+        }
+        else
+        {
+            <MudPaper Elevation="2" Class="request-card pa-4 ma-4">
             <MudText Typo="Typo.h4" Class="mb-4">New Fuel Entry</MudText>
 
             <MudSelect T="string" Class="mb-3" Label="Select Boat *" Variant="Variant.Filled" @bind-Value="selectedBoat"
-                Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.DirectionsBoat"
-                OpenIcon="@Icons.Material.Filled.KeyboardArrowDown"
-                CloseIcon="@Icons.Material.Filled.KeyboardArrowUp">
+                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.DirectionsBoat"
+                       OpenIcon="@Icons.Material.Filled.KeyboardArrowDown" CloseIcon="@Icons.Material.Filled.KeyboardArrowUp">
                 @foreach (var boat in boats)
                 {
                     <MudSelectItem Value="@boat">@boat</MudSelectItem>
                 }
             </MudSelect>
 
-            <MudDatePicker Label="Date *" Variant="Variant.Filled" @bind-Date="logDate" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.CalendarMonth" />
+            <MudDatePicker Label="Date *" Variant="Variant.Filled" @bind-Date="logDate" Adornment="Adornment.End"
+                           AdornmentIcon="@Icons.Material.Filled.CalendarMonth" />
 
-            <MudDivider DividerType="DividerType.Middle"/>
+            <MudDivider DividerType="DividerType.Middle" />
 
             <MudText Typo="Typo.overline" Class="">Engine Hours</MudText>
 
-            <MudNumericField T="decimal?" Variant="Variant.Filled" Label="Current Engine 1 Hours" @bind-Value="engine1Hours" Adornment="Adornment.End" Required="true" Class="mb-3"/>
+            <MudNumericField T="decimal?" Variant="Variant.Filled" Label="Current Engine 1 Hours"
+                             @bind-Value="engine1Hours" Adornment="Adornment.End" Required="true" Class="mb-3" />
 
-            <MudNumericField T="decimal?" Variant="Variant.Filled" Label="Current Engine 2 Hours" @bind-Value="engine2Hours" Adornment="Adornment.End"  Required="true"/>
+            <MudNumericField T="decimal?" Variant="Variant.Filled" Label="Current Engine 2 Hours"
+                             @bind-Value="engine2Hours" Adornment="Adornment.End" Required="true" />
             <MudDivider DividerType="DividerType.Middle" />
 
             <MudText Typo="Typo.overline" Class="">Fuel Added (Gallons)</MudText>
 
-            <MudNumericField T="decimal?" Variant="Variant.Filled" Label="Fuel Added - Engine 1" @bind-Value="fuel1" Adornment="Adornment.End"  Required="true" Class="mb-3"/>
+            <MudNumericField T="decimal?" Variant="Variant.Filled" Label="Fuel Added - Engine 1" @bind-Value="fuel1"
+                             Adornment="Adornment.End" Required="true" Class="mb-3" />
 
-            <MudNumericField T="decimal?" Variant="Variant.Filled" Label="Fuel Added - Engine 2" @bind-Value="fuel2" Adornment="Adornment.End"  Required="true" Class="mb-3"/>
+            <MudNumericField T="decimal?" Variant="Variant.Filled" Label="Fuel Added - Engine 2" @bind-Value="fuel2"
+                             Adornment="Adornment.End" Required="true" Class="mb-3" />
 
             <MudPaper Class="fuel-log-summary">
                 <MudStack Direction="Row" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
@@ -68,26 +86,33 @@
 
             <MudText Typo="Typo.overline" Class="fuel-log-section">Fuel Added- Gas Cans (Gallons)</MudText>
 
-            <MudNumericField T="decimal?" Variant="Variant.Filled" Label="Fuel - Gas Cans (Optional)" @bind-Value="GasCans" Adornment="Adornment.End" />
+            <MudNumericField T="decimal?" Variant="Variant.Filled" Label="Fuel - Gas Cans (Optional)"
+                             @bind-Value="GasCans" Adornment="Adornment.End" />
 
             <MudDivider DividerType="DividerType.Middle" />
 
             <MudText Typo="Typo.overline" Class="fuel-log-section">Crew</MudText>
 
-            <MudSelect T="string" Label="Crew Member Fueling Boat" Variant="Variant.Filled" Required="true" @bind-Value="selectedCrew" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person">
+            <MudSelect T="string" Label="Crew Member Fueling Boat" Variant="Variant.Filled" Required="true"
+                       @bind-Value="selectedCrew" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person">
                 @foreach (var crew in crewMembers)
                 {
                     <MudSelectItem Value="@crew">@crew</MudSelectItem>
                 }
             </MudSelect>
 
-            <MudButton Variant="Variant.Filled" Color="Color.Warning" Class="submit-btn mt-5" StartIcon="@Icons.Material.Filled.Save" FullWidth="true" @onclick="SaveButton">Submit Fuel Entry</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Warning" Class="submit-btn mt-5"
+                       StartIcon="@Icons.Material.Filled.Save" FullWidth="true" @onclick="SaveButton">Submit Fuel Entry
+            </MudButton>
         </MudPaper>
+        }
+
+        
 
     </MudPaper>
-    
+
 </MudContainer>
-<br/>
+<br />
 
 @code {
     private string? selectedBoat;
@@ -100,6 +125,7 @@
     private decimal? fuel2;
     private decimal? GasCans;
     private decimal combinedFuel => (fuel1 ?? 0m) + (fuel2 ?? 0m) + (GasCans ?? 0m);
+    private bool fuelLogSubmitted = false;
 
 
     private static readonly Dictionary<string, object> DecimalInputAttributes = new()
@@ -154,7 +180,7 @@
         }
         else
         {
-           //do nothing, leave empty for user to select from list
+            //do nothing, leave empty for user to select from list
         }
     }
     private async Task SaveButton()
@@ -188,6 +214,10 @@
         GasCans = null;
         selectedBoat = null;
         selectedCrew = null;
+
+        fuelLogSubmitted = true;
+        await Task.Delay(3000); // show for 3 seconds
+        fuelLogSubmitted = false;
 
     }
 
