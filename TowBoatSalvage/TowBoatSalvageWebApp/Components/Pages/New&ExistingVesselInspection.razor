@@ -6,6 +6,7 @@
 @using TowBoatSalvageWebApp.Models
 @inject VehicleInspectionService VehicleInspectionService
 @inject UserManager<ApplicationUser> UserManager
+@inject UserService UserService
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 @inject IDialogService DialogService
@@ -227,6 +228,8 @@
         {
             crewMembers.Add(user.Name);
         }
+
+        selectedCrew = UserService.Name;
     }
 
     private async Task StartNewVesselInspectionAsync()
@@ -236,7 +239,7 @@
 
         try
         {
-            var vesselInspection = await VehicleInspectionService.CreateNewVesselInspectionAsync(selectedCrew, selectedBoat, _dateOfInspection);
+            var vesselInspection = await VehicleInspectionService.CreateNewVesselInspectionAsync(selectedCrew!, selectedBoat, _dateOfInspection);
 
             var url = $"{Nav.BaseUri}vessel-inspection/{vesselInspection.Id}";
 

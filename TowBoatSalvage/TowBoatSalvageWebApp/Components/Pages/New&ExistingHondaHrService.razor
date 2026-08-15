@@ -6,6 +6,7 @@
 @using TowBoatSalvageWebApp.Models
 @inject Honda500HrService Honda500HrService
 @inject UserManager<ApplicationUser> UserManager
+@inject UserService UserService
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 @inject IDialogService DialogService
@@ -227,6 +228,9 @@
         {
             crewMembers.Add(user.Name);
         }
+
+        //set selected user as the signed in user
+        selectedCrew = UserService.Name;
     }
 
     private async Task StartNew500HrServiceAsync()
