@@ -60,13 +60,15 @@ namespace TowBoatSalvageWebApp.Services
             await _db.SaveChangesAsync();
         }
 
-        public async Task<VesselInspection> CreateNewVesselInspectionAsync(string user, string boatNumber, DateTime? date)
+        public async Task<VesselInspection> CreateNewVesselInspectionAsync(string user, string boatNumber, DateTime? date, int? engine1Hours, int? engine2Hours)
         {
             var inspection = new VesselInspection()
             {
                 CompletedBy = user,
                 BoatNumber = boatNumber,
                 DateOfInspection = date,
+                Engine1Hours = engine1Hours,
+                Engine2Hours = engine2Hours,
                 Notes = string.Empty,
                 ServiceDescriptions = new List<ServiceDescriptionVesselInspection>
                 {

@@ -61,12 +61,12 @@
 
                     <MudGrid Class="mb-2">
                         <MudItem xs="12" sm="6">
-                            <MudTextField T="int" Label="Engine 1 (hrs)" Placeholder="e.g. 1250"
+                            <MudTextField T="int?" Label="Engine 1 (hrs)" Placeholder="e.g. 1250"
                                           InputType="InputType.Number" Variant="Variant.Filled" Margin="Margin.Dense"
                                           @bind-Value="_engineHours1" Required="true" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudTextField T="int" Label="Engine 2 (hrs)" Placeholder="e.g. 1250"
+                            <MudTextField T="int?" Label="Engine 2 (hrs)" Placeholder="e.g. 1250"
                                           InputType="InputType.Number" Variant="Variant.Filled" Margin="Margin.Dense"
                                           @bind-Value="_engineHours2" Required="true" />
                         </MudItem>
@@ -195,8 +195,8 @@
     private readonly List<string> crewMembers = new();
     private DateTime? _dateOfInspection = DateTime.Now;
 
-    private int _engineHours1;
-    private int _engineHours2;
+    private int? _engineHours1;
+    private int? _engineHours2;
 
     private int OpenVesselInspectionCount;
     private List<VesselInspection> _allVesselInspection = new();
@@ -236,10 +236,12 @@
     {
         if (selectedCrew is null) return;
         if (selectedBoat is null) return;
+        if (_engineHours1 is null) return;
+        if (_engineHours2 is null) return;
 
         try
         {
-            var vesselInspection = await VehicleInspectionService.CreateNewVesselInspectionAsync(selectedCrew!, selectedBoat, _dateOfInspection);
+            var vesselInspection = await VehicleInspectionService.CreateNewVesselInspectionAsync(selectedCrew!, selectedBoat, _dateOfInspection, _engineHours1, _engineHours2);
 
             var url = $"{Nav.BaseUri}vessel-inspection/{vesselInspection.Id}";
 

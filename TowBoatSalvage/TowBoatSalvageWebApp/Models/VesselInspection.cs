@@ -8,6 +8,8 @@ namespace TowBoatSalvageWebApp.Models
         public string BoatNumber { get; set; } = string.Empty;
         public string CompletedBy { get; set; } = string.Empty;
         public DateTime? DateOfInspection { get; set; } = DateTime.Now;
+        public int? Engine1Hours { get; set; } = null;
+        public int? Engine2Hours { get; set; } = null;
         public bool bHasBeenDownloaded { get;set;} = false;
         public bool bIsResolved {get;set;} = false;
         public List<ServiceDescriptionVesselInspection> ServiceDescriptions {get;set;} = new();
