@@ -635,7 +635,7 @@
     {
         var col = Columns.FirstOrDefault(c => c.Label == "Status");
         if (col is not null)
-            await OnStatusChanged(row, col, "Completed");
+            await OnStatusChanged(row, col, "Salvage Done");
     }
 
     // ── Notes modal ──
