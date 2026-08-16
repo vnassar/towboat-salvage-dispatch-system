@@ -407,10 +407,7 @@
                                             </MudButton>
                                         }
 
-                                        <MudMenu Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-                                            <ActivatorContent Context="menuActivator">
-                                                <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" />
-                                            </ActivatorContent>
+                                        <MudMenu Dense="true" Icon="@Icons.Material.Filled.MoreVert" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
                                             <ChildContent>
                                                 <MudMenuItem Icon="@Icons.Material.Filled.Info" OnClick="@(() => OpenRequestDetailsDialog(request))">
                                                     View Full Info
