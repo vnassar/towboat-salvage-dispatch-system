@@ -161,15 +161,12 @@
             {
                 case DateField.FirstRecording:
                     service.FirstRecording = date;
-                    Snackbar.Add("First recording fired", Severity.Info);
                     break;
                 case DateField.SecondRecording:
                     service.SecondRecording = date;
-                    Snackbar.Add("Second recording fired", Severity.Info);
                     break;
                 default:
                     service.DateForThisItem = date;
-                    Snackbar.Add("Default fired", Severity.Info);
                     break;
             }
 
