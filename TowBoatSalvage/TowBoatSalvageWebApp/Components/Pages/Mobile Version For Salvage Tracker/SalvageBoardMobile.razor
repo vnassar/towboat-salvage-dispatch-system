@@ -311,8 +311,9 @@
                     <MudStack Spacing="1" AlignItems="AlignItems.Center">
                         <MudImage Src="@($"/salvage_uploads/{img.FileName}")"
                                   Alt="thumb"
+                                  Class="@(img.FileName == selectedImage ? "border-2 border-primary" : "")"
                                   Style="width:80px; height:80px; object-fit:cover; cursor:pointer;"
-                                  OnClick="() => selectedImage = img.FileName" />
+                                  @onclick="async () => await UpdateImagePreviewAsync(img.FileName)" />
                         <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                        Color="Color.Error" Size="Size.Small"
                                        OnClick="async () => await DeleteFileAsync(img.Id)" />
@@ -694,6 +695,13 @@
         }
 
         OpenGallery(files, files[0].FileName);
+    }
+
+    private async Task UpdateImagePreviewAsync(string newImage)
+    {
+        selectedImage = newImage;
+        //Snackbar.Add("Fired.remove later.");
+        //StateHasChanged();
     }
 
     private SalvageFile? FindFileById(int fileId)
