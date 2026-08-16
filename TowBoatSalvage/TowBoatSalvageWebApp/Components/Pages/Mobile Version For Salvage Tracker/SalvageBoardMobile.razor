@@ -618,7 +618,7 @@
                 await TableService.UpdateCellValueAsync(row.Id, completedDateCol.Id, DateTime.Now.ToString("yyyy-MM-dd"));
             }
 
-            _ = ToastService.ShowToast("Dispatch moved to completed.", "success");
+            //_ = ToastService.ShowToast("Dispatch moved to completed.", "success");
         }
 
         await LoadBoardAsync();
